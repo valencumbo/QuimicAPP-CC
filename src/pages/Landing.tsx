@@ -36,9 +36,9 @@ export default function Landing() {
                  Ingresar a mi cuenta
                </Button>
              </Link>
-             <a href="#contacto" className="text-zinc-600 font-medium hover:text-zinc-900 transition-colors px-4 py-2">
+             <button onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })} className="text-zinc-600 font-medium hover:text-zinc-900 transition-colors px-4 py-2 mt-4 sm:mt-0">
                Quiero suscribirme
-             </a>
+             </button>
           </div>
         </section>
 
@@ -111,9 +111,9 @@ export default function Landing() {
                    Cálculo de márgenes y precios de venta sugeridos
                  </li>
                </ul>
-               <a href="#contacto">
+               <button onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })} className="w-full">
                  <Button className="w-full h-14 text-base font-bold text-lg rounded-xl">Solicitar mi cuenta</Button>
-               </a>
+               </button>
             </div>
           </div>
         </section>
