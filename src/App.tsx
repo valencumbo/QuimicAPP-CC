@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router';
 import { useAuth, WorkspaceProvider } from './lib/hooks';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
@@ -16,12 +16,15 @@ function HomeOrLanding() {
   if (user) return <Navigate to="/dashboard" replace />;
   return <Landing />;
 }
+
 import Products from './pages/Products';
 import Purchases from './pages/Purchases';
 import Recipes from './pages/Recipes';
 import Settings from './pages/Settings';
 import Suppliers from './pages/Suppliers';
 import Reminders from './pages/Reminders';
+import Billing from './pages/Billing';
+import OrderGenerator from './pages/OrderGenerator';
 import Topbar from './components/Topbar';
 import { Toaster } from '@/components/ui/sonner';
 import { Loader2 } from 'lucide-react';
@@ -58,10 +61,13 @@ export default function App() {
           <Route path="/products" element={<Products />} />
           <Route path="/purchases" element={<Purchases />} />
           <Route path="/recipes" element={<Recipes />} />
+          <Route path="/billing" element={<Billing />} />
           <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/order-generator" element={<OrderGenerator />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

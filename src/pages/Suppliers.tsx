@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function Suppliers() {
@@ -17,6 +18,8 @@ export default function Suppliers() {
   const { suppliers, products, settings } = useWorkspaceData(user?.uid);
   const [search, setSearch] = useState('');
   
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   
@@ -89,7 +92,6 @@ export default function Suppliers() {
 
   const handleDelete = async (id: string) => {
     if (!user?.uid) return;
-    if (!confirm('¿Eliminar este proveedor?')) return;
 
     try {
       await deleteDoc(doc(db, `workspaces/${user.uid}/suppliers/${id}`));
@@ -236,7 +238,7 @@ export default function Suppliers() {
 
             <DialogFooter className="flex items-center justify-between mt-6">
               {editId ? (
-                <Button type="button" variant="destructive" onClick={() => handleDelete(editId)}>
+                <Button type="button" variant="destructive" onClick={() => { setIsDialogOpen(false); setDeleteConfirmId(editId); }}>
                   <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                 </Button>
               ) : <div></div>}
@@ -260,7 +262,11 @@ export default function Suppliers() {
             <div className="space-y-2">
               <Label>Proveedor A</Label>
               <Select value={compareA} onValueChange={setCompareA}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar">
+                    {suppliers.find(s => s.id === compareA)?.name || 'Seleccionar'}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
@@ -269,7 +275,11 @@ export default function Suppliers() {
             <div className="space-y-2">
               <Label>Proveedor B</Label>
               <Select value={compareB} onValueChange={setCompareB}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar">
+                    {suppliers.find(s => s.id === compareB)?.name || 'Seleccionar'}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
@@ -334,6 +344,24 @@ export default function Suppliers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este proveedor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el proveedor permanentemente de tu base de datos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteConfirmId) handleDelete(deleteConfirmId);
+              setDeleteConfirmId(null);
+            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -10,12 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function Purchases() {
   const { user } = useAuth();
   const { settings, products, purchases } = useWorkspaceData(user?.uid);
   
+  const [deleteConfirm, setDeleteConfirm] = useState<{id: string, productId: string, quantity: number} | null>(null);
+
   const [formData, setFormData] = useState({
     productId: '',
     date: new Date().toISOString().split('T')[0],
@@ -23,13 +26,15 @@ export default function Purchases() {
     quantity: '' as number | string,
     unitCost: '' as number | string,
     extraCost: '' as number | string,
-    note: ''
+    note: '',
+    currency: ''
   });
 
   const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: settings?.currency || 'ARS' });
 
   const selectedProduct = products.find(p => p.id === formData.productId);
-  const selectedCurrency = selectedProduct?.currency || settings?.currency || 'ARS';
+  const defaultCurrency = selectedProduct?.currency || settings?.currency || 'ARS';
+  const selectedCurrency = formData.currency || defaultCurrency;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,7 @@ export default function Purchases() {
       
       batch.set(purchaseRef, {
         ...formData,
+        currency: selectedCurrency,
         quantity: qty,
         unitCost: cost,
         extraCost: extra,
@@ -58,14 +64,31 @@ export default function Purchases() {
         createdAt: serverTimestamp()
       });
 
+      // Calculate cost taking into account currency
+      const purchaseCurrency = selectedCurrency;
+      const baseCurrency = settings?.currency || 'ARS';
+      
+      let rateToProductCurrency = 1;
+
+      // Ensure the product cost matches the product's defined currency
+      // If product uses ARS, but purchase was made in USD -> convert purchase to ARS
+      // If product uses USD, but purchase was made in ARS -> convert purchase to USD
+      const prodCurrency = selectedProduct.currency || baseCurrency;
+      if (purchaseCurrency === 'USD' && prodCurrency === 'ARS') {
+         rateToProductCurrency = settings?.usdRate || 1;
+      } else if (purchaseCurrency === 'ARS' && prodCurrency === 'USD') {
+         rateToProductCurrency = 1 / Math.max(settings?.usdRate || 1, 0.01);
+      }
+
       // Update product stock and costs
       const prodRef = doc(db, `workspaces/${user.uid}/products/${selectedProduct.id}`);
       const newStock = (selectedProduct.stock || 0) + qty;
-      const totalUnitCost = cost + (extra / Math.max(qty, 1));
+      const totalUnitCostInPurchaseCurrency = cost + (extra / Math.max(qty, 1));
+      const totalUnitCostInProductCurrency = totalUnitCostInPurchaseCurrency * rateToProductCurrency;
       
       batch.update(prodRef, {
         stock: newStock,
-        purchaseCost: totalUnitCost,
+        purchaseCost: totalUnitCostInProductCurrency,
         extraCost: 0, // Reset extra cost on the product since it's factored into unit cost
         supplier: formData.supplier || selectedProduct.supplier,
         updatedAt: serverTimestamp()
@@ -81,7 +104,8 @@ export default function Purchases() {
         quantity: '',
         unitCost: '',
         extraCost: '',
-        note: ''
+        note: '',
+        currency: ''
       });
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `workspaces/${user.uid}/purchases/new`);
@@ -90,7 +114,6 @@ export default function Purchases() {
 
   const handleDelete = async (id: string, productId: string, quantity: number) => {
     if (!user?.uid) return;
-    if (!confirm('¿Deshacer compra? Esto descontará el stock sumado y eliminará el registro.')) return;
 
     try {
       const batch = writeBatch(db);
@@ -122,7 +145,7 @@ export default function Purchases() {
 
       <div className="grid gap-6 md:grid-cols-12 items-start">
         <Card className="md:col-span-4 sticky top-24">
-          <CardHeader>
+          <CardHeader className="relative">
             <CardTitle>Nueva Compra</CardTitle>
             <CardDescription>Añade facturas o remitos</CardDescription>
           </CardHeader>
@@ -130,8 +153,15 @@ export default function Purchases() {
             <form onSubmit={handleSave} className="space-y-4">
                <div className="space-y-2">
                  <Label>Producto</Label>
-                 <Select value={formData.productId} onValueChange={v => setFormData({...formData, productId: v})}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un producto..."/></SelectTrigger>
+                 <Select value={formData.productId} onValueChange={v => {
+                    const prod = products.find(p => p.id === v);
+                    setFormData({...formData, productId: v, currency: prod?.currency || settings?.currency || 'ARS'})
+                 }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un producto...">
+                         {selectedProduct ? `${selectedProduct.name} (${selectedProduct.unit})` : 'Selecciona un producto...'}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       {products.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} ({p.unit})</SelectItem>
@@ -154,13 +184,28 @@ export default function Purchases() {
                    <Input type="number" min="0.01" step="0.01" required value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} />
                  </div>
                  <div className="space-y-2">
-                   <Label>Costo Unit. ({selectedCurrency})</Label>
-                   <Input type="number" min="0" step="0.01" required value={formData.unitCost} onChange={e => setFormData({...formData, unitCost: e.target.value})} />
+                   <Label>Moneda</Label>
+                   <Select value={selectedCurrency} onValueChange={v => setFormData({...formData, currency: v})}>
+                      <SelectTrigger><SelectValue/></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ARS">ARS</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        {settings?.currency !== 'ARS' && settings?.currency !== 'USD' && (
+                          <SelectItem value={settings?.currency || 'ARS'}>{settings?.currency}</SelectItem>
+                        )}
+                      </SelectContent>
+                   </Select>
                  </div>
                </div>
-               <div className="space-y-2">
-                 <Label>Gastos Extra ({selectedCurrency})</Label>
-                 <Input type="number" min="0" step="0.01" value={formData.extraCost} onChange={e => setFormData({...formData, extraCost: e.target.value})} />
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label>Costo Unit.</Label>
+                   <Input type="number" min="0" step="0.01" required value={formData.unitCost} onChange={e => setFormData({...formData, unitCost: e.target.value})} />
+                 </div>
+                 <div className="space-y-2">
+                   <Label>Gastos Extra</Label>
+                   <Input type="number" min="0" step="0.01" value={formData.extraCost} onChange={e => setFormData({...formData, extraCost: e.target.value})} />
+                 </div>
                </div>
                <div className="space-y-2">
                  <Label>Nota / Nro. Factura</Label>
@@ -196,7 +241,7 @@ export default function Purchases() {
                   purchases.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(pur => {
                     const product = products.find(p => p.id === pur.productId);
                     const totalCost = (pur.quantity * pur.unitCost) + pur.extraCost;
-                    const purCurrency = product?.currency || settings?.currency || 'ARS';
+                    const purCurrency = pur.currency || product?.currency || settings?.currency || 'ARS';
                     const purFormatter = new Intl.NumberFormat(purCurrency === 'USD' ? 'en-US' : 'es-AR', { style: 'currency', currency: purCurrency });
                     return (
                       <TableRow key={pur.id} className="group">
@@ -211,7 +256,7 @@ export default function Purchases() {
                         <TableCell>{pur.quantity} {product?.unit || 'un'}</TableCell>
                         <TableCell className="font-bold">{purFormatter.format(totalCost)}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 hover:text-red-600" onClick={() => handleDelete(pur.id, pur.productId, pur.quantity)}>
+                          <Button variant="ghost" size="icon" className="group-hover:opacity-100 opacity-0 hover:text-red-600 transition-opacity" onClick={() => setDeleteConfirm({id: pur.id, productId: pur.productId, quantity: pur.quantity})}>
                              <Trash2 className="w-4 h-4" />
                           </Button>
                         </TableCell>
@@ -224,6 +269,24 @@ export default function Purchases() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Deshacer compra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción descontará el stock sumado por esta compra y eliminará el registro permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteConfirm) handleDelete(deleteConfirm.id, deleteConfirm.productId, deleteConfirm.quantity);
+              setDeleteConfirm(null);
+            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -61,6 +61,7 @@ service cloud.firestore {
         && isPositiveNumber(data.unitCost)
         && (data.get('supplier', '') is string && data.get('supplier', '').size() <= 200)
         && (data.get('extraCost', 0) is number && data.get('extraCost', 0) >= 0)
+        && (data.get('currency', '') is string && data.get('currency', '').size() <= 10)
         && (data.get('note', '') is string && data.get('note', '').size() <= 1000);
     }
 
@@ -95,6 +96,16 @@ service cloud.firestore {
         && isShortString(data.dueDate)
         && data.completed is bool
         && (data.get('description', '') is string && data.get('description', '').size() <= 1000);
+    }
+    
+    function isValidSale(data) {
+      return data.keys().hasAll(['workspaceId', 'clientName', 'date', 'items', 'totalAmount', 'createdAt'])
+        && data.workspaceId == request.auth.uid
+        && isShortString(data.clientName)
+        && isShortString(data.date)
+        && data.items is list
+        && isPositiveNumber(data.totalAmount)
+        && (data.get('currency', '') is string && data.get('currency', '').size() <= 10);
     }
 
     // Workspaces ----------------------------------------------------
@@ -217,6 +228,21 @@ service cloud.firestore {
                       && isTimeNow(incoming().updatedAt)
                       && incoming().workspaceId == existing().workspaceId
                       && incoming().createdAt == existing().createdAt;
+
+        allow delete: if isOwner() && existing().workspaceId == request.auth.uid;
+      }
+      
+      // Sub-collection: Sales ---------------------------------------
+      match /sales/{saleId} {
+        allow read: if isOwner() && existing().workspaceId == request.auth.uid;
+        allow list: if isOwner() && resource.data.workspaceId == request.auth.uid;
+
+        allow create: if isOwner()
+                      && isValidId(saleId)
+                      && isValidSale(incoming())
+                      && isTimeNow(incoming().createdAt);
+
+        allow update: if false; // Invoices/Sales logs are immutable
 
         allow delete: if isOwner() && existing().workspaceId == request.auth.uid;
       }

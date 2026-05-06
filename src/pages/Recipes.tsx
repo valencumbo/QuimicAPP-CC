@@ -9,12 +9,15 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function Recipes() {
   const { user } = useAuth();
   const { settings, products, recipes } = useWorkspaceData(user?.uid);
   
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const [recipeName, setRecipeName] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [components, setComponents] = useState<{productId: string, quantity: number}[]>([]);
@@ -143,7 +146,6 @@ export default function Recipes() {
 
   const handleDelete = async (id: string) => {
     if (!user?.uid) return;
-    if (!confirm('¿Eliminar esta fórmula?')) return;
 
     try {
       await deleteDoc(doc(db, `workspaces/${user.uid}/recipes/${id}`));
@@ -454,7 +456,7 @@ export default function Recipes() {
                          <Button variant="outline" size="sm" className="h-8" onClick={(e) => { e.stopPropagation(); handleEditRecipe(recipe); }}>
                             Editar Fórmula
                          </Button>
-                         <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleDelete(recipe.id); }}>
+                         <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(recipe.id); }}>
                             <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                          </Button>
                       </div>
@@ -466,6 +468,24 @@ export default function Recipes() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta fórmula?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará la fórmula permanentemente. Los productos vinculados no se verán afectados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteConfirmId) handleDelete(deleteConfirmId);
+              setDeleteConfirmId(null);
+            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

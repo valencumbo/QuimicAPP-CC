@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,8 @@ export default function Reminders() {
   const { user } = useAuth();
   const { reminders } = useWorkspaceData(user?.uid);
   
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   
@@ -92,7 +95,6 @@ export default function Reminders() {
 
   const handleDelete = async (id: string) => {
     if (!user?.uid) return;
-    if (!confirm('¿Eliminar este recordatorio?')) return;
 
     try {
       await deleteDoc(doc(db, `workspaces/${user.uid}/reminders/${id}`));
@@ -170,7 +172,7 @@ export default function Reminders() {
             
             <DialogFooter className="flex items-center justify-between mt-6">
               {editId ? (
-                <Button type="button" variant="destructive" onClick={() => handleDelete(editId)}>
+                <Button type="button" variant="destructive" onClick={() => { setIsDialogOpen(false); setDeleteConfirmId(editId); }}>
                   <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                 </Button>
               ) : <div></div>}
@@ -184,6 +186,24 @@ export default function Reminders() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este recordatorio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteConfirmId) handleDelete(deleteConfirmId);
+              setDeleteConfirmId(null);
+            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

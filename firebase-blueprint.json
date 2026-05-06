@@ -61,6 +61,7 @@
         "unitCost": { "type": "number" },
         "extraCost": { "type": "number" },
         "note": { "type": "string" },
+        "currency": { "type": "string" },
         "createdAt": { "type": "number" }
       },
       "required": ["workspaceId", "productId", "date", "quantity", "unitCost", "createdAt"]
@@ -121,6 +122,21 @@
         "updatedAt": { "type": "number" }
       },
       "required": ["workspaceId", "title", "dueDate", "completed", "createdAt", "updatedAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sales records or invoices",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "date": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "object" } },
+        "totalAmount": { "type": "number" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["workspaceId", "date", "items", "totalAmount", "createdAt"]
     }
   },
   "firestore": {
@@ -147,6 +163,10 @@
     "workspaces/{workspaceId}/reminders/{reminderId}": {
       "schema": "#/entities/Reminder",
       "description": "Reminders configured within the workspace."
+    },
+    "workspaces/{workspaceId}/sales/{saleId}": {
+      "schema": "#/entities/Sale",
+      "description": "Sales and invoices recorded within the workspace."
     }
   }
 }

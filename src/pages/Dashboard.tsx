@@ -2,10 +2,12 @@ import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, TrendingUp, AlertTriangle, Coins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { format, subDays, isSameDay, parseISO } from 'date-fns';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { settings, products, purchases, loading } = useWorkspaceData(user?.uid);
+  const { settings, products, purchases, sales, loading } = useWorkspaceData(user?.uid);
 
   if (loading || !settings) return <div className="space-y-4"><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
 
@@ -22,10 +24,28 @@ export default function Dashboard() {
     currency: settings.currency || 'ARS'
   });
 
+  // Analytics logic
+  // 1. Sales over the last 14 days
+  const last14Days = Array.from({ length: 14 }).map((_, i) => subDays(new Date(), 13 - i));
+  const salesData = last14Days.map(date => {
+    const daySales = (sales || []).filter((s: any) => {
+      const sDate = s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()) : new Date(s.createdAt);
+      return isSameDay(sDate, date);
+    });
+    const totalDay = daySales.reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+    return {
+      date: format(date, 'dd/MM'),
+      ventas: totalDay
+    };
+  });
+
+  // 2. Purchases vs Sales Summary (Last 30 days roughly, or overall)
+  const currentMonthSales = (sales || []).reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+  
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Panel de costos</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Panel de control y Analíticas</h1>
         <p className="text-zinc-500 mt-2">Resumen operativo para tu negocio.</p>
       </div>
 
@@ -52,12 +72,12 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compras Recientes</CardTitle>
-            <TrendingUp className="h-4 w-4 text-zinc-500" />
+            <CardTitle className="text-sm font-medium">Ingresos Totales (Mes)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{purchases.length}</div>
-            <p className="text-xs text-zinc-500">movimientos de ingreso</p>
+            <div className="text-2xl font-bold text-emerald-600">{formatter.format(currentMonthSales)}</div>
+            <p className="text-xs text-zinc-500">ventas registradas</p>
           </CardContent>
         </Card>
         <Card>
@@ -73,53 +93,51 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="col-span-1 md:col-span-2 lg:col-span-1">
           <CardHeader>
-            <CardTitle>Últimas advertencias</CardTitle>
+            <CardTitle>Ventas (Últimos 14 días)</CardTitle>
           </CardHeader>
-          <CardContent>
-            {lowStockProducts.length === 0 ? (
-               <p className="text-sm text-zinc-500">Tu stock parece estar en orden.</p>
-            ) : (
-              <div className="space-y-4">
-                {lowStockProducts.slice(0, 5).map(p => (
-                  <div key={p.id} className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{p.name}</span>
-                      <span className="text-xs text-zinc-500">Stock actual: {p.stock} {p.unit}</span>
-                    </div>
-                    <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] px-2 py-1 font-bold uppercase tracking-wider">Stock bajo</span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CardContent className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <Line type="monotone" dataKey="ventas" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <CartesianGrid stroke="#e4e4e7" strokeDasharray="5 5" vertical={false} />
+                <XAxis dataKey="date" stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#a1a1aa" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                <RechartsTooltip 
+                  formatter={(value: number) => [formatter.format(value), 'Ventas']}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e4e4e7', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Últimas compras registradas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {purchases.length === 0 ? (
-               <p className="text-sm text-zinc-500">No hay compras recientes.</p>
-            ) : (
-              <div className="space-y-4">
-                {purchases.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5).map(p => {
-                  const product = products.find(prod => prod.id === p.productId);
-                  return (
+
+        {/* ... (Existing sections integrated) */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Últimas advertencias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {lowStockProducts.length === 0 ? (
+                 <p className="text-sm text-zinc-500">Tu stock parece estar en orden.</p>
+              ) : (
+                <div className="space-y-4">
+                  {lowStockProducts.slice(0, 5).map(p => (
                     <div key={p.id} className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{product?.name || 'Producto eliminado'}</span>
-                        <span className="text-xs text-zinc-500">{new Date(p.date).toLocaleDateString()} - {p.supplier}</span>
+                        <span className="text-sm font-medium">{p.name}</span>
+                        <span className="text-xs text-zinc-500">Stock actual: {p.stock} {p.unit}</span>
                       </div>
-                      <span className="text-sm font-bold">{formatter.format(p.quantity * p.unitCost + p.extraCost)}</span>
+                      <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] px-2 py-1 font-bold uppercase tracking-wider">Stock bajo</span>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

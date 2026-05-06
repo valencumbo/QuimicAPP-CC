@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 export default function Products() {
@@ -20,7 +21,8 @@ export default function Products() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: '', sku: '', type: 'resale', unit: 'un', supplier: '', category: '', currency: 'ARS',
     stock: '' as number | string, purchaseCost: '' as number | string, extraCost: '' as number | string, wasteRate: '' as number | string, targetMargin: 35 as number | string, salePrice: '' as number | string
@@ -122,7 +124,6 @@ export default function Products() {
 
   const handleDelete = async (id: string) => {
     if (!user?.uid) return;
-    if (!confirm('¿Eliminar este producto?')) return;
 
     try {
       await deleteDoc(doc(db, `workspaces/${user.uid}/products/${id}`));
@@ -140,10 +141,12 @@ export default function Products() {
           <h1 className="text-3xl font-bold tracking-tight">Productos</h1>
           <p className="text-zinc-500 mt-1">Administra tu inventario de materias primas y procesados.</p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo producto
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo producto
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -242,7 +245,7 @@ export default function Products() {
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[800px] h-[90vh] sm:h-auto overflow-y-auto">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between mt-2">
             <DialogTitle>{editId ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-6 mt-4">
@@ -355,7 +358,7 @@ export default function Products() {
 
              <DialogFooter className="flex items-center justify-between mt-6">
                 {editId ? (
-                  <Button type="button" variant="destructive" onClick={() => handleDelete(editId)}>
+                  <Button type="button" variant="destructive" onClick={() => { setIsDialogOpen(false); setDeleteConfirmId(editId); }}>
                     <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                   </Button>
                 ) : <div></div>}
@@ -369,6 +372,24 @@ export default function Products() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el producto permanentemente de tu base de datos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteConfirmId) handleDelete(deleteConfirmId);
+              setDeleteConfirmId(null);
+            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
