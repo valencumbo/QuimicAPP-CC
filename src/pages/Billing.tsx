@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Trash2, Plus, Receipt } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Trash2, Plus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Billing() {
@@ -17,6 +18,7 @@ export default function Billing() {
   
   const [sales, setSales] = useState<any[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [viewSaleDetails, setViewSaleDetails] = useState<any | null>(null);
   
   const [clientName, setClientName] = useState('');
   const [currency, setCurrency] = useState('ARS');
@@ -297,9 +299,14 @@ export default function Billing() {
                        <CardTitle className="text-base truncate pr-2" title={s.clientName}>{s.clientName}</CardTitle>
                        <CardDescription>{new Date(s.createdAt?.toMillis ? s.createdAt.toMillis() : Date.now()).toLocaleDateString()}</CardDescription>
                      </div>
-                     <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 -mt-1 -mr-1" onClick={() => setDeleteConfirmId(s.id)}>
-                       <Trash2 className="w-4 h-4" />
-                     </Button>
+                     <div className="flex -mt-1 -mr-1">
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => setViewSaleDetails(s)}>
+                         <Eye className="w-4 h-4" />
+                       </Button>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50" onClick={() => setDeleteConfirmId(s.id)}>
+                         <Trash2 className="w-4 h-4" />
+                       </Button>
+                     </div>
                    </div>
                  </CardHeader>
                  <CardContent>
@@ -338,6 +345,56 @@ export default function Billing() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewSaleDetails} onOpenChange={(open) => !open && setViewSaleDetails(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalle de Venta - {viewSaleDetails?.clientName}</DialogTitle>
+            <DialogDescription>
+              Fecha: {viewSaleDetails && new Date(viewSaleDetails.createdAt?.toMillis ? viewSaleDetails.createdAt.toMillis() : Date.now()).toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 border rounded-md overflow-x-auto w-full">
+            <table className="w-full text-sm min-w-[500px]">
+              <thead className="bg-zinc-50 border-b">
+                <tr>
+                  <th className="px-4 py-2 text-left">Ítem</th>
+                  <th className="px-4 py-2 text-center">Tipo</th>
+                  <th className="px-4 py-2 text-right">Cant.</th>
+                  <th className="px-4 py-2 text-right">Precio U.</th>
+                  <th className="px-4 py-2 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y text-zinc-700">
+                {viewSaleDetails?.items.map((it: any, i: number) => {
+                  const itemName = it.isRecipe 
+                    ? recipes.find(r => r.id === it.itemId)?.name || 'Receta Eliminada'
+                    : products.find(p => p.id === it.itemId)?.name || 'Producto Eliminado';
+                  
+                  return (
+                    <tr key={i}>
+                      <td className="px-4 py-2">{itemName}</td>
+                      <td className="px-4 py-2 text-center text-xs text-zinc-500">{it.isRecipe ? 'Receta' : 'Producto'}</td>
+                      <td className="px-4 py-2 text-right">{it.quantity}</td>
+                      <td className="px-4 py-2 text-right">{formatMoney(it.customPrice || 0, viewSaleDetails.currency)}</td>
+                      <td className="px-4 py-2 text-right font-medium">{formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot className="bg-zinc-50 border-t">
+                <tr>
+                  <td colSpan={4} className="px-4 py-3 text-right font-bold">Total:</td>
+                  <td className="px-4 py-3 text-right font-bold text-lg text-amber-600">{viewSaleDetails && formatMoney(viewSaleDetails.totalAmount, viewSaleDetails.currency)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewSaleDetails(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

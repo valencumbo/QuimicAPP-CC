@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { doc, setDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { Trash2, Plus, ArrowRight, Calculator } from 'lucide-react';
+import { Trash2, Plus, ArrowRight, Calculator, PackagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 export default function Recipes() {
@@ -17,6 +18,9 @@ export default function Recipes() {
   const { settings, products, recipes } = useWorkspaceData(user?.uid);
   
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  const [produceRecipe, setProduceRecipe] = useState<any>(null);
+  const [produceQuantity, setProduceQuantity] = useState<number | ''>('');
 
   const [recipeName, setRecipeName] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
@@ -163,6 +167,44 @@ export default function Recipes() {
     setYieldQty(recipe.yield);
     setProcessCost(recipe.processCost);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleProduce = async () => {
+    if (!user?.uid || !produceRecipe || !produceQuantity || produceQuantity <= 0) return toast.error('Ingresa una cantidad válida');
+    
+    const multiplier = Number(produceQuantity) / Math.max(produceRecipe.yield, 1);
+    
+    try {
+      const batch = writeBatch(db);
+      
+      // Increase product stock
+      const productRef = doc(db, `workspaces/${user.uid}/products/${produceRecipe.productId}`);
+      const productObj = products.find(p => p.id === produceRecipe.productId);
+      const currentStock = Number(productObj?.stock || 0);
+      batch.update(productRef, {
+        stock: currentStock + Number(produceQuantity),
+        updatedAt: serverTimestamp()
+      });
+      
+      // Decrease components stock
+      produceRecipe.components.forEach((c: any) => {
+        const compRef = doc(db, `workspaces/${user.uid}/products/${c.productId}`);
+        const compObj = products.find(p => p.id === c.productId);
+        const compCurrentStock = Number(compObj?.stock || 0);
+        const qtyToSubtract = c.quantity * multiplier;
+        batch.update(compRef, {
+          stock: Math.max(0, compCurrentStock - qtyToSubtract), // Avoid negative stock if possible, though you might allow it depending on rules. Leaving as Math.max(0, ...) or just compCurrentStock - qtyToSubtract.
+          updatedAt: serverTimestamp()
+        });
+      });
+      
+      await batch.commit();
+      toast.success(`Producción de ${produceQuantity} registradas exitosamente`);
+      setProduceRecipe(null);
+      setProduceQuantity('');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `workspaces/${user.uid}/products/production`);
+    }
   };
 
   const processedProducts = products.filter(p => p.type === 'processed');
@@ -452,9 +494,14 @@ export default function Recipes() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2 p-3 bg-zinc-100/50 border-t justify-end">
+                      <div className="flex gap-2 p-3 bg-zinc-100/50 border-t justify-end w-full">
+                         <div className="flex-1">
+                           <Button variant="default" size="sm" className="h-8 bg-zinc-800 hover:bg-zinc-700 w-auto text-xs px-3" onClick={(e) => { e.stopPropagation(); setProduceRecipe(recipe); }}>
+                              <PackagePlus className="w-4 h-4 mr-1.5" /> Registrar Producción
+                           </Button>
+                         </div>
                          <Button variant="outline" size="sm" className="h-8" onClick={(e) => { e.stopPropagation(); handleEditRecipe(recipe); }}>
-                            Editar Fórmula
+                            Editar
                          </Button>
                          <Button variant="ghost" size="sm" className="h-8 text-red-500 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(recipe.id); }}>
                             <Trash2 className="w-4 h-4 mr-2" /> Eliminar
@@ -486,6 +533,40 @@ export default function Recipes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!produceRecipe} onOpenChange={(open) => !open && setProduceRecipe(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Producción</DialogTitle>
+            <DialogDescription>
+              Al registrar la producción: <br/><br/>
+              1. <b>Aumentará el stock</b> del producto terminado. <br/>
+              2. <b>Se descontará el stock</b> de los insumos usados, según la proporción de esta fórmula.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+               <Label>¿Cuántas unidades elaboraste?</Label>
+               <Input 
+                 type="number" 
+                 min="0.1" 
+                 step="0.1" 
+                 value={produceQuantity}
+                 onChange={(e) => setProduceQuantity(Number(e.target.value) || '')} 
+                 placeholder="Ej: 50"
+                 className="text-lg"
+               />
+               <p className="text-sm text-zinc-500 mt-2">
+                 Rendimiento base de esta receta: {produceRecipe?.yield} unidades.
+               </p>
+            </div>
+          </div>
+          <DialogFooter>
+             <Button variant="outline" onClick={() => setProduceRecipe(null)}>Cancelar</Button>
+             <Button onClick={handleProduce} disabled={!produceQuantity}>Confirmar Producción</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
