@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DownloadCloud } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Settings() {
   const { user } = useAuth();
-  const { settings, loading } = useWorkspaceData(user?.uid);
+  const { settings, products, recipes, suppliers, loading } = useWorkspaceData(user?.uid);
+  const [exporting, setExporting] = useState(false);
   
   const [formData, setFormData] = useState({
     currency: 'ARS',
@@ -69,6 +73,83 @@ export default function Settings() {
       toast.success('Cotización del dólar actualizada');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `workspaces/${user.uid}`);
+    }
+  };
+
+  const handleExportBackup = async () => {
+    if (!user?.uid) return;
+    setExporting(true);
+    toast.info('Generando archivo de backup...');
+
+    try {
+      const doc = new jsPDF();
+      
+      doc.setFontSize(20);
+      doc.text('Reporte de Backup - Costeo Comercial', 14, 22);
+      doc.setFontSize(10);
+      doc.text(`Fecha de exportación: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(`Usuario: ${user.email}`, 14, 35);
+
+      // Section: Products (Stock)
+      doc.setFontSize(14);
+      doc.text('Inventario de Productos e Insumos', 14, 45);
+      
+      autoTable(doc, {
+        startY: 50,
+        head: [['Nombre', 'SKU', 'Stock', 'Costo']],
+        body: products.map(p => [
+          p.name, 
+          p.sku, 
+          `${p.stock} ${p.unit}`, 
+          `${p.currency || 'ARS'} ${p.purchaseCost}`
+        ]),
+        theme: 'grid'
+      });
+
+      // Section: Recipes
+      let currentY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.text('Fórmulas y Recetas', 14, currentY);
+      
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Receta', 'Rendimiento', 'Costo Operativo']],
+        body: recipes.map(r => [
+          r.name, 
+          `${r.yield} unidades`, 
+          `$${r.processCost}`
+        ]),
+        theme: 'grid'
+      });
+
+      // Fetch Sales
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+      const q = query(collection(db, `workspaces/${user.uid}/sales`), where('workspaceId', '==', user.uid), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      const sales = snap.docs.map(d => d.data());
+
+      doc.setFontSize(14);
+      doc.text('Historial de Ventas', 14, currentY);
+      
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['Cliente', 'Fecha', 'Ítems', 'Total']],
+        body: sales.map(s => [
+          s.clientName,
+          new Date(s.createdAt?.toMillis ? s.createdAt.toMillis() : Date.now()).toLocaleDateString(),
+          s.items?.length || 0,
+          `${s.currency} ${s.totalAmount}`
+        ]),
+        theme: 'grid'
+      });
+
+      doc.save(`Backup_CosteoComercial_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('Backup generado exitosamente');
+    } catch(err) {
+      console.error(err);
+      toast.error('Ocurrió un error al generar el backup');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -169,6 +250,23 @@ export default function Settings() {
             </CardContent>
           </Card>
           
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-base">Mantenimiento y Resguardo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+               <div>
+                  <p className="text-sm text-zinc-600 mb-3">
+                     Generá un archivo PDF detallado con el respaldo de tu stock, facturación e historial de recetas.
+                  </p>
+                  <Button variant="outline" className="w-full flex justify-center border-amber-200 text-amber-700 hover:bg-amber-50" onClick={handleExportBackup} disabled={exporting}>
+                     <DownloadCloud className="w-4 h-4 mr-2" />
+                     {exporting ? 'Generando...' : 'Descargar Copia de Seguridad'}
+                  </Button>
+               </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="py-4">
               <CardTitle className="text-base">Acerca de tu cuenta</CardTitle>

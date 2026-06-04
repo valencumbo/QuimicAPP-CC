@@ -26,6 +26,7 @@ export interface AppSettings {
   lowStockLimit: number;
   usdRate?: number;
   usdRateHistory?: { rate: number; date: string }[];
+  customUnits?: string[];
 }
 export interface UserWorkspace {
   ownerId: string;

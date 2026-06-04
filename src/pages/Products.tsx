@@ -67,8 +67,16 @@ export default function Products() {
   const handleOpenDialog = (p?: any) => {
     if (p) {
       setEditId(p.id);
+      const currentUnit = p.unit || 'Unidades';
+      const allU = Array.from(new Set(['Unidades', 'KG', 'GRS', 'LTS', ...(settings?.customUnits || [])]));
+      if (!allU.includes(currentUnit)) {
+        setCustomUnit(currentUnit);
+      } else {
+        setCustomUnit('');
+      }
+
       setFormData({
-        name: p.name || '', sku: p.sku || '', type: p.type || 'resale', unit: p.unit || 'un',
+        name: p.name || '', sku: p.sku || '', type: p.type || 'resale', unit: currentUnit,
         supplier: p.supplier || '', category: p.category || '', currency: p.currency || settings?.currency || 'ARS',
         stock: p.stock ?? '', purchaseCost: p.purchaseCost ?? '', extraCost: p.extraCost ?? '',
         wasteRate: p.wasteRate ?? '', targetMargin: p.targetMargin ?? '',
@@ -76,13 +84,18 @@ export default function Products() {
       });
     } else {
       setEditId(null);
+      setCustomUnit('');
       setFormData({
-        name: '', sku: '', type: 'resale', unit: 'un', supplier: '', category: '', currency: settings?.currency || 'ARS',
+        name: '', sku: '', type: 'resale', unit: 'Unidades', supplier: '', category: '', currency: settings?.currency || 'ARS',
         stock: '', purchaseCost: '', extraCost: '', wasteRate: '', targetMargin: settings?.defaultMargin || 35, salePrice: ''
       });
     }
     setIsDialogOpen(true);
   };
+
+  const [customUnit, setCustomUnit] = useState('');
+  const defaultUnits = ['Unidades', 'KG', 'GRS', 'LTS'];
+  const allUnits = Array.from(new Set([...defaultUnits, ...(settings?.customUnits || [])]));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +104,25 @@ export default function Products() {
     const id = editId || crypto.randomUUID();
     const docRef = doc(db, `workspaces/${user.uid}/products/${id}`);
     
+    let finalUnit = formData.unit;
+    if (finalUnit === 'otra') {
+      finalUnit = customUnit.trim() || 'Unidades';
+      if (!allUnits.includes(finalUnit)) {
+        try {
+          const wsRef = doc(db, 'workspaces', user.uid);
+          await updateDoc(wsRef, {
+            'settings.customUnits': [...(settings?.customUnits || []), finalUnit],
+            updatedAt: serverTimestamp()
+          });
+        } catch(err) {
+          console.error("Error saving custom unit", err);
+        }
+      }
+    }
+
     const payload = {
       ...formData,
+      unit: finalUnit,
       stock: Number(formData.stock) || 0,
       purchaseCost: Number(formData.purchaseCost) || 0,
       extraCost: Number(formData.extraCost) || 0,
@@ -277,7 +307,23 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Unidad de medida</Label>
-                  <Input required value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} placeholder="Ej. litros, kg, unid" />
+                  <Select value={allUnits.includes(formData.unit) ? formData.unit : (formData.unit ? 'otra' : 'Unidades')} onValueChange={val => {
+                    setFormData({...formData, unit: val});
+                    if (val !== 'otra') setCustomUnit('');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar unidad..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allUnits.map(u => (
+                        <SelectItem key={u} value={u}>{u}</SelectItem>
+                      ))}
+                      <SelectItem value="otra">Otra...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(!allUnits.includes(formData.unit) || formData.unit === 'otra') && (
+                    <Input autoFocus required placeholder="Escriba la unidad..." value={customUnit} onChange={e => setCustomUnit(e.target.value)} />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Proveedor</Label>

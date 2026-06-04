@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, Plus, Eye } from 'lucide-react';
+import { Trash2, Plus, Eye, Download, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function Billing() {
   const { user } = useAuth();
@@ -97,6 +99,16 @@ export default function Billing() {
 
   const totalAmount = items.reduce((acc, it) => acc + ((Number(it.quantity) || 0) * (Number(it.customPrice) || 0)), 0);
 
+  const [editSaleId, setEditSaleId] = useState<string | null>(null);
+
+  const handleEditSale = (s: any) => {
+    setEditSaleId(s.id);
+    setClientName(s.clientName);
+    setCurrency(s.currency || defaultCurrency);
+    setItems(s.items);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSave = async () => {
     if (!user?.uid) return;
     if (items.length === 0) return toast.error('Debes agregar al menos un ítem.');
@@ -111,43 +123,79 @@ export default function Billing() {
         customPrice: Number(it.customPrice) || 0
       }));
 
-      const newSaleRef = doc(collection(db, `workspaces/${user.uid}/sales`));
-      batch.set(newSaleRef, {
-        workspaceId: user.uid,
-        clientName,
-        date: new Date().toISOString().split('T')[0],
-        currency,
-        items: itemsToSave,
-        totalAmount,
-        createdAt: serverTimestamp()
-      });
+      const stockDiff: Record<string, number> = {};
 
-      // Deduct stock for products
+      // Calculate old stock to revert
+      if (editSaleId) {
+        const originalSale = sales.find(s => s.id === editSaleId);
+        if (originalSale && originalSale.items) {
+          for (const it of originalSale.items) {
+            if (!it.isRecipe && it.itemId) {
+              stockDiff[it.itemId] = (stockDiff[it.itemId] || 0) + (Number(it.quantity) || 0);
+            }
+          }
+        }
+      }
+
+      // Calculate new stock to deduct
       for (const it of itemsToSave) {
         if (!it.isRecipe && it.itemId) {
-           const prod = products.find(p => p.id === it.itemId);
-           if (prod) {
-             const prodRef = doc(db, `workspaces/${user.uid}/products/${prod.id}`);
-             batch.update(prodRef, {
-               stock: Math.max(0, (prod.stock || 0) - it.quantity),
-               updatedAt: serverTimestamp()
-             });
-           }
+          stockDiff[it.itemId] = (stockDiff[it.itemId] || 0) - it.quantity;
+        }
+      }
+
+      const saleRef = editSaleId 
+        ? doc(db, `workspaces/${user.uid}/sales/${editSaleId}`) 
+        : doc(collection(db, `workspaces/${user.uid}/sales`));
+
+      if (editSaleId) {
+        batch.update(saleRef, {
+          clientName,
+          date: new Date().toISOString().split('T')[0],
+          currency,
+          items: itemsToSave,
+          totalAmount,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        batch.set(saleRef, {
+          workspaceId: user.uid,
+          clientName,
+          date: new Date().toISOString().split('T')[0],
+          currency,
+          items: itemsToSave,
+          totalAmount,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      // Apply net stock updates
+      for (const [productId, diff] of Object.entries(stockDiff)) {
+        if (diff === 0) continue;
+        const prod = products.find(p => p.id === productId);
+        if (prod) {
+          const prodRef = doc(db, `workspaces/${user.uid}/products/${productId}`);
+          batch.update(prodRef, {
+            stock: Math.max(0, (prod.stock || 0) + diff),
+            updatedAt: serverTimestamp()
+          });
         }
       }
       
       await batch.commit();
       
-      toast.success('Factura/Cotización guardada exitosamente.');
+      toast.success(editSaleId ? 'Venta actualizada exitosamente.' : 'Factura/Cotización guardada exitosamente.');
       setItems([]);
       setClientName('');
+      setEditSaleId(null);
       
       const q = query(collection(db, `workspaces/${user.uid}/sales`), where('workspaceId', '==', user.uid), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       setSales(snap.docs.map(d => ({id: d.id, ...d.data()})));
 
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `workspaces/${user.uid}/sales`);
+      handleFirestoreError(err, editSaleId ? OperationType.UPDATE : OperationType.CREATE, `workspaces/${user.uid}/sales`);
     }
   };
 
@@ -161,6 +209,48 @@ export default function Billing() {
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `workspaces/${user.uid}/sales/${id}`);
     }
+  };
+
+  const exportToPdf = () => {
+    if (!viewSaleDetails) return;
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Detalle de Venta', 14, 22);
+    
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${viewSaleDetails.clientName}`, 14, 32);
+    doc.text(`Fecha: ${new Date(viewSaleDetails.createdAt?.toMillis ? viewSaleDetails.createdAt.toMillis() : Date.now()).toLocaleDateString()}`, 14, 40);
+    
+    const tableData = viewSaleDetails.items.map((it: any) => {
+      const itemName = it.isRecipe 
+        ? recipes.find(r => r.id === it.itemId)?.name || 'Receta Eliminada'
+        : products.find(p => p.id === it.itemId)?.name || 'Producto Eliminado';
+      
+      return [
+        itemName,
+        it.isRecipe ? 'Receta' : 'Producto',
+        it.quantity,
+        formatMoney(it.customPrice || 0, viewSaleDetails.currency),
+        formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 50,
+      head: [['Ítem', 'Tipo', 'Cant.', 'Precio U.', 'Subtotal']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [245, 158, 11] } // amber-500
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 50;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total: ${formatMoney(viewSaleDetails.totalAmount, viewSaleDetails.currency)}`, 14, finalY + 10);
+
+    doc.save(`Venta_${viewSaleDetails.clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   return (
@@ -280,9 +370,16 @@ export default function Billing() {
                 </div>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 gap-3">
+               {editSaleId && (
+                  <Button variant="ghost" onClick={() => {
+                     setEditSaleId(null);
+                     setClientName('');
+                     setItems([]);
+                  }}>Cancelar</Button>
+               )}
                <Button onClick={handleSave} className="h-12 px-8 text-base font-bold bg-amber-500 hover:bg-amber-600 text-zinc-950">
-                 Registrar Venta
+                 {editSaleId ? 'Guardar Cambios' : 'Registrar Venta'}
                </Button>
             </div>
           </CardContent>
@@ -295,13 +392,16 @@ export default function Billing() {
                <Card key={s.id} className="shadow-sm border-zinc-200/60 transition-all hover:shadow-md">
                  <CardHeader className="pb-3">
                    <div className="flex justify-between items-start">
-                     <div>
-                       <CardTitle className="text-base truncate pr-2" title={s.clientName}>{s.clientName}</CardTitle>
+                     <div className="min-w-0 pr-1">
+                       <CardTitle className="text-base truncate" title={s.clientName}>{s.clientName}</CardTitle>
                        <CardDescription>{new Date(s.createdAt?.toMillis ? s.createdAt.toMillis() : Date.now()).toLocaleDateString()}</CardDescription>
                      </div>
-                     <div className="flex -mt-1 -mr-1">
+                     <div className="flex -mt-1 -mr-1 flex-shrink-0">
                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => setViewSaleDetails(s)}>
                          <Eye className="w-4 h-4" />
+                       </Button>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-amber-600 hover:bg-amber-50" onClick={() => handleEditSale(s)}>
+                         <Pencil className="w-4 h-4" />
                        </Button>
                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50" onClick={() => setDeleteConfirmId(s.id)}>
                          <Trash2 className="w-4 h-4" />
@@ -390,7 +490,11 @@ export default function Billing() {
               </tfoot>
             </table>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex items-center sm:justify-between">
+            <Button variant="outline" className="mr-auto border-amber-200 text-amber-700 hover:bg-amber-50 group" onClick={exportToPdf}>
+              <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />
+              Descargar PDF
+            </Button>
             <Button variant="outline" onClick={() => setViewSaleDetails(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
