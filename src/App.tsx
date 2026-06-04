@@ -25,6 +25,8 @@ import Suppliers from './pages/Suppliers';
 import Reminders from './pages/Reminders';
 import Billing from './pages/Billing';
 import OrderGenerator from './pages/OrderGenerator';
+import Lotes from './pages/Lotes';
+import Reports from './pages/Reports';
 import Topbar from './components/Topbar';
 import QuickActionBtn from './components/QuickActionBtn';
 import { Toaster } from '@/components/ui/sonner';
@@ -65,6 +67,8 @@ export default function App() {
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/billing" element={<Billing />} />
           <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/lotes" element={<Lotes />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/order-generator" element={<OrderGenerator />} />
           <Route path="/settings" element={<Settings />} />

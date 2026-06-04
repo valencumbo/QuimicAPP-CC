@@ -16,7 +16,7 @@ import autoTable from 'jspdf-autotable';
 
 export default function Billing() {
   const { user } = useAuth();
-  const { settings, products, recipes } = useWorkspaceData(user?.uid);
+  const { settings, products, recipes, batches } = useWorkspaceData(user?.uid);
   
   const [sales, setSales] = useState<any[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -180,6 +180,25 @@ export default function Billing() {
             stock: Math.max(0, (prod.stock || 0) + diff),
             updatedAt: serverTimestamp()
           });
+
+          // FIFO Batch reduction
+          if (diff < 0) {
+            let remaining = Math.abs(diff);
+            const prodBatches = batches
+              .filter(b => b.productId === productId && b.currentQuantity > 0)
+              .sort((a, b) => new Date(a.expirationDate || 0).getTime() - new Date(b.expirationDate || 0).getTime());
+            
+            for (const b of prodBatches) {
+              if (remaining <= 0) break;
+              const deduct = Math.min(b.currentQuantity, remaining);
+              remaining -= deduct;
+              const bRef = doc(db, `workspaces/${user.uid}/batches/${b.id}`);
+              batch.update(bRef, {
+                currentQuantity: b.currentQuantity - deduct,
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
         }
       }
       

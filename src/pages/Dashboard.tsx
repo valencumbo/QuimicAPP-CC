@@ -7,7 +7,7 @@ import { format, subDays, isSameDay, parseISO } from 'date-fns';
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const { settings, products, purchases, sales, loading } = useWorkspaceData(user?.uid);
+  const { settings, products, purchases, sales, batches, loading } = useWorkspaceData(user?.uid);
 
   if (loading || !settings) return <div className="space-y-4"><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
 
@@ -18,6 +18,15 @@ export default function Dashboard() {
   }, 0);
 
   const lowStockProducts = products.filter(p => p.stock <= settings.lowStockLimit);
+  
+  const today = new Date();
+  const expiringBatches = (batches || []).filter(b => {
+     if (!b.expirationDate || b.currentQuantity <= 0) return false;
+     const expDate = new Date(b.expirationDate);
+     const diffTime = expDate.getTime() - today.getTime();
+     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+     return diffDays <= 90; // Alerting under 90 days
+  }).sort((a, b) => new Date(a.expirationDate || 0).getTime() - new Date(b.expirationDate || 0).getTime());
   
   const formatter = new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -117,15 +126,15 @@ export default function Dashboard() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Últimas advertencias</CardTitle>
+              <CardTitle>Alertas de Stock</CardTitle>
             </CardHeader>
             <CardContent>
               {lowStockProducts.length === 0 ? (
-                 <p className="text-sm text-zinc-500">Tu stock parece estar en orden.</p>
+                 <p className="text-sm text-zinc-500">Tu nivel de stock es óptimo.</p>
               ) : (
                 <div className="space-y-4">
                   {lowStockProducts.slice(0, 5).map(p => (
-                    <div key={p.id} className="flex items-center justify-between">
+                    <div key={p.id} className="flex items-center justify-between border-b border-zinc-50 pb-2 last:border-0 last:pb-0">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{p.name}</span>
                         <span className="text-xs text-zinc-500">Stock actual: {p.stock} {p.unit}</span>
@@ -133,6 +142,38 @@ export default function Dashboard() {
                       <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] px-2 py-1 font-bold uppercase tracking-wider">Stock bajo</span>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Lotes por vencer (Próximos 90 días)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {expiringBatches.length === 0 ? (
+                 <p className="text-sm text-zinc-500">No hay lotes en riesgo de vencimiento cercano.</p>
+              ) : (
+                <div className="space-y-4">
+                  {expiringBatches.slice(0, 5).map(b => {
+                    const prodName = products.find(p => p.id === b.productId)?.name || 'Producto Desconocido';
+                    const expDate = new Date(b.expirationDate);
+                    const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    const variantClass = diffDays < 0 ? 'bg-red-100 text-red-800' : diffDays <= 30 ? 'bg-orange-100 text-orange-800' : 'bg-amber-100 text-amber-800';
+
+                    return (
+                      <div key={b.id} className="flex items-center justify-between border-b border-zinc-50 pb-2 last:border-0 last:pb-0">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{prodName} <span className="text-zinc-500 text-xs font-normal ml-1">(Lote: {b.lotNumber})</span></span>
+                          <span className="text-xs text-zinc-500">Restan: {b.currentQuantity} unid. - Vence: {expDate.toLocaleDateString()}</span>
+                        </div>
+                        <span className={`rounded-full text-[10px] px-2 py-1 font-bold uppercase tracking-wider ${variantClass}`}>
+                          {diffDays < 0 ? 'Vencido' : `${diffDays} días`}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

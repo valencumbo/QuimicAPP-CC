@@ -27,7 +27,11 @@ export default function Purchases() {
     unitCost: '' as number | string,
     extraCost: '' as number | string,
     note: '',
-    currency: ''
+    currency: '',
+    isBatchEntry: false,
+    lotNumber: '',
+    expirationDate: '',
+    location: ''
   });
 
   const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: settings?.currency || 'ARS' });
@@ -93,6 +97,31 @@ export default function Purchases() {
         supplier: formData.supplier || selectedProduct.supplier,
         updatedAt: serverTimestamp()
       });
+
+      // Create Lot if requested
+      if (formData.isBatchEntry) {
+        if (!formData.lotNumber || !formData.expirationDate) {
+          toast.error("El N° de Lote y Vencimiento son requeridos si se registra como lote.");
+          return;
+        }
+        
+        const lotId = crypto.randomUUID();
+        const lotRef = doc(db, `workspaces/${user.uid}/batches/${lotId}`);
+        batch.set(lotRef, {
+          workspaceId: user.uid,
+          productId: selectedProduct.id,
+          lotNumber: formData.lotNumber,
+          expirationDate: formData.expirationDate,
+          initialQuantity: qty,
+          currentQuantity: qty,
+          location: formData.location || '',
+          supplierId: '',
+          unitCost: totalUnitCostInProductCurrency,
+          currency: selectedProduct.currency || settings?.currency || 'ARS',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
 
       await batch.commit();
 
@@ -211,8 +240,40 @@ export default function Purchases() {
                  <Label>Nota / Nro. Factura</Label>
                  <Input type="text" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} />
                </div>
+
+               <div className="border border-zinc-200 rounded-md p-3 bg-zinc-50 space-y-3 mt-4">
+                 <div className="flex items-center space-x-2">
+                   <input 
+                     type="checkbox" 
+                     id="isBatchEntry" 
+                     className="rounded border-zinc-300 bg-white shadow-sm focus:border-emerald-300 focus:ring focus:ring-emerald-200 focus:ring-opacity-50 text-emerald-600"
+                     checked={formData.isBatchEntry}
+                     onChange={(e) => setFormData({...formData, isBatchEntry: e.target.checked})}
+                   />
+                   <Label htmlFor="isBatchEntry" className="font-medium cursor-pointer">Registrar como Lote (trazabilidad)</Label>
+                 </div>
+                 
+                 {formData.isBatchEntry && (
+                   <div className="space-y-3 pt-2">
+                     <div className="grid grid-cols-2 gap-3">
+                       <div className="space-y-1">
+                         <Label className="text-xs">N° Lote *</Label>
+                         <Input required className="h-8 text-sm" value={formData.lotNumber} onChange={e => setFormData({...formData, lotNumber: e.target.value})} placeholder="Ej: L-1004" />
+                       </div>
+                       <div className="space-y-1">
+                         <Label className="text-xs">Vencimiento *</Label>
+                         <Input required type="date" className="h-8 text-sm" value={formData.expirationDate} onChange={e => setFormData({...formData, expirationDate: e.target.value})} />
+                       </div>
+                     </div>
+                     <div className="space-y-1">
+                       <Label className="text-xs">Ubicación</Label>
+                       <Input className="h-8 text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Estante/Heladera..." />
+                     </div>
+                   </div>
+                 )}
+               </div>
                
-               <Button type="submit" className="w-full mt-2">Registrar ingreso</Button>
+               <Button type="submit" className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white">Registrar Ingreso</Button>
             </form>
           </CardContent>
         </Card>

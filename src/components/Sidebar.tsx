@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { Home, Package, ShoppingCart, TestTube, Users, Bell, Settings, Receipt, Truck } from 'lucide-react';
+import { Home, Package, ShoppingCart, TestTube, Users, Bell, Settings, Receipt, Truck, Archive, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { auth } from '@/src/lib/firebase';
@@ -14,10 +14,12 @@ export default function Sidebar() {
     { name: 'Panel', path: '/dashboard', icon: Home },
     { name: 'Productos', path: '/products', icon: Package },
     { name: 'Compras', path: '/purchases', icon: ShoppingCart },
+    { name: 'Lotes y Venc.', path: '/lotes', icon: Archive },
     { name: 'Recetas', path: '/recipes', icon: TestTube },
     { name: 'Fact. y Ventas', path: '/billing', icon: Receipt },
     { name: 'Proveedores', path: '/suppliers', icon: Users },
     { name: 'Ped. Sugeridos', path: '/order-generator', icon: Truck },
+    { name: 'Reportes y Exp.', path: '/reports', icon: FileSpreadsheet },
     { name: 'Recordatorios', path: '/reminders', icon: Bell },
     { name: 'Configuración', path: '/settings', icon: Settings },
   ];

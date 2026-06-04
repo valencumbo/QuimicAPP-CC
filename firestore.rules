@@ -53,6 +53,22 @@ service cloud.firestore {
         && (data.get('salePrice', 0) is number && data.get('salePrice', 0) >= 0);
     }
 
+    function isValidBatch(data) {
+      return data.keys().hasAll(['workspaceId', 'productId', 'lotNumber', 'expirationDate', 'initialQuantity', 'currentQuantity', 'createdAt', 'updatedAt'])
+        && data.workspaceId == request.auth.uid
+        && isShortString(data.productId)
+        && isShortString(data.lotNumber)
+        && isShortString(data.expirationDate)
+        && (data.get('manufacturingDate', '') is string)
+        && (data.get('location', '') is string)
+        && (data.get('supplierId', '') is string)
+        && (data.get('notes', '') is string)
+        && (data.get('currency', '') is string && data.get('currency', '').size() <= 10)
+        && (data.get('initialQuantity', 0) is number && data.get('initialQuantity', 0) >= 0)
+        && (data.get('currentQuantity', 0) is number && data.get('currentQuantity', 0) >= 0)
+        && (data.get('unitCost', 0) is number && data.get('unitCost', 0) >= 0);
+    }
+
     function isValidPurchase(data) {
       return data.keys().hasAll(['workspaceId', 'productId', 'date', 'quantity', 'unitCost', 'createdAt'])
         && data.workspaceId == request.auth.uid
@@ -133,6 +149,26 @@ service cloud.firestore {
                     && incoming().createdAt == existing().createdAt;
       
       allow delete: if false; // Deny deletion of workspaces
+
+      // Sub-collection: Batches -------------------------------------
+      match /batches/{batchId} {
+        allow read: if isOwner() && existing().workspaceId == request.auth.uid;
+        allow list: if isOwner() && resource.data.workspaceId == request.auth.uid;
+
+        allow create: if isOwner()
+                      && isValidId(batchId)
+                      && isValidBatch(incoming())
+                      && isTimeNow(incoming().createdAt)
+                      && isTimeNow(incoming().updatedAt);
+
+        allow update: if isOwner()
+                      && isValidBatch(incoming())
+                      && isTimeNow(incoming().updatedAt)
+                      && incoming().workspaceId == existing().workspaceId
+                      && incoming().createdAt == existing().createdAt;
+                      
+        allow delete: if isOwner() && existing().workspaceId == request.auth.uid;
+      }
 
       // Sub-collection: Products ------------------------------------
       match /products/{productId} {

@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 export default function Recipes() {
   const { user } = useAuth();
-  const { settings, products, recipes } = useWorkspaceData(user?.uid);
+  const { settings, products, recipes, batches } = useWorkspaceData(user?.uid);
   
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
@@ -196,6 +196,23 @@ export default function Recipes() {
           stock: Math.max(0, compCurrentStock - qtyToSubtract), // Avoid negative stock if possible, though you might allow it depending on rules. Leaving as Math.max(0, ...) or just compCurrentStock - qtyToSubtract.
           updatedAt: serverTimestamp()
         });
+
+        // FIFO Batch Reduction for Component
+        let remaining = qtyToSubtract;
+        const compBatches = batches
+          .filter(b => b.productId === c.productId && b.currentQuantity > 0)
+          .sort((a, b) => new Date(a.expirationDate || 0).getTime() - new Date(b.expirationDate || 0).getTime());
+        
+        for (const b of compBatches) {
+          if (remaining <= 0) break;
+          const deduct = Math.min(b.currentQuantity, remaining);
+          remaining -= deduct;
+          const bRef = doc(db, `workspaces/${user.uid}/batches/${b.id}`);
+          batch.update(bRef, {
+            currentQuantity: b.currentQuantity - deduct,
+            updatedAt: serverTimestamp()
+          });
+        }
       });
       
       await batch.commit();

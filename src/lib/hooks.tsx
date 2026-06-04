@@ -88,6 +88,23 @@ export interface Supplier {
   createdAt: any;
   updatedAt: any;
 }
+export interface Batch {
+  id: string;
+  workspaceId: string;
+  productId: string;
+  lotNumber: string;
+  manufacturingDate?: string;
+  expirationDate: string;
+  initialQuantity: number;
+  currentQuantity: number;
+  location?: string;
+  supplierId?: string;
+  unitCost: number;
+  currency?: string;
+  notes?: string;
+  createdAt: any;
+  updatedAt: any;
+}
 export interface Reminder {
   id: string;
   workspaceId: string;
@@ -106,6 +123,7 @@ interface WorkspaceContextValue {
   recipes: Recipe[];
   suppliers: Supplier[];
   reminders: Reminder[];
+  batches: Batch[];
   loading: boolean;
 }
 
@@ -116,6 +134,7 @@ const WorkspaceContext = createContext<WorkspaceContextValue>({
   recipes: [],
   suppliers: [],
   reminders: [],
+  batches: [],
   loading: true
 });
 
@@ -126,6 +145,7 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -136,6 +156,7 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
       setRecipes([]);
       setSuppliers([]);
       setReminders([]);
+      setBatches([]);
       setLoading(false);
       return;
     }
@@ -188,6 +209,10 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
       setReminders(snap.docs.map(d => ({ id: d.id, ...d.data() } as Reminder)));
     }, err => handleFirestoreError(err, OperationType.LIST, `workspaces/${userId}/reminders`));
 
+    const unsubBatches = onSnapshot(query(collection(db, `workspaces/${userId}/batches`), where('workspaceId', '==', userId)), (snap) => {
+      setBatches(snap.docs.map(d => ({ id: d.id, ...d.data() } as Batch)));
+    }, err => handleFirestoreError(err, OperationType.LIST, `workspaces/${userId}/batches`));
+
     setLoading(false);
 
     return () => {
@@ -197,11 +222,12 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
       unsubRecipes();
       unsubSuppliers();
       unsubReminders();
+      unsubBatches();
     };
   }, [userId]);
 
   return (
-    <WorkspaceContext.Provider value={{ settings, products, purchases, recipes, suppliers, reminders, loading }}>
+    <WorkspaceContext.Provider value={{ settings, products, purchases, recipes, suppliers, reminders, batches, loading }}>
       {children}
     </WorkspaceContext.Provider>
   );
