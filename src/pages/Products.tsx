@@ -3,7 +3,7 @@ import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { auth } from '@/src/lib/firebase';
 import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Beaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,7 +78,7 @@ export default function Products() {
       setFormData({
         name: p.name || '', sku: p.sku || '', type: p.type || 'resale', unit: currentUnit,
         supplier: p.supplier || '', category: p.category || '', currency: p.currency || settings?.currency || 'ARS',
-        stock: p.stock ?? '', purchaseCost: p.purchaseCost ?? '', extraCost: p.extraCost ?? '',
+        stock: p.stock ?? '', minStock: p.minStock ?? '', purchaseCost: p.purchaseCost ?? '', extraCost: p.extraCost ?? '',
         wasteRate: p.wasteRate ?? '', targetMargin: p.targetMargin ?? '',
         salePrice: p.salePrice ?? ''
       });
@@ -87,7 +87,7 @@ export default function Products() {
       setCustomUnit('');
       setFormData({
         name: '', sku: '', type: 'resale', unit: 'Unidades', supplier: '', category: '', currency: settings?.currency || 'ARS',
-        stock: '', purchaseCost: '', extraCost: '', wasteRate: '', targetMargin: settings?.defaultMargin || 35, salePrice: ''
+        stock: '', minStock: '', purchaseCost: '', extraCost: '', wasteRate: '', targetMargin: settings?.defaultMargin || 35, salePrice: ''
       });
     }
     setIsDialogOpen(true);
@@ -124,6 +124,7 @@ export default function Products() {
       ...formData,
       unit: finalUnit,
       stock: Number(formData.stock) || 0,
+      minStock: Number(formData.minStock) || 0,
       purchaseCost: Number(formData.purchaseCost) || 0,
       extraCost: Number(formData.extraCost) || 0,
       wasteRate: Number(formData.wasteRate) || 0,
@@ -165,14 +166,17 @@ export default function Products() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Productos</h1>
-          <p className="text-zinc-500 mt-1">Administra tu inventario de materias primas y procesados.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <Beaker className="w-8 h-8 text-primary" />
+            Catálogo de Productos
+          </h1>
+          <p className="text-muted-foreground mt-2">Administra tu inventario de materias primas y procesados.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => handleOpenDialog()}>
+          <Button onClick={() => handleOpenDialog()} className="bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-orange-500 transition-all">
             <Plus className="w-4 h-4 mr-2" />
             Nuevo producto
           </Button>
@@ -181,16 +185,16 @@ export default function Products() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar producto o SKU..." 
-            className="pl-9"
+            className="pl-9 bg-card border-border text-foreground"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] bg-card border-border">
             <SelectValue placeholder="Tipo de producto">
                {filterType === 'all' && 'Todos los tipos'}
                {filterType === 'raw' && 'Materia prima'}
@@ -207,61 +211,61 @@ export default function Products() {
         </Select>
       </div>
 
-      <div className="border rounded-lg bg-white overflow-x-auto">
+      <div className="border border-border rounded-xl bg-card shadow-lg overflow-x-auto">
         <Table>
-          <TableHeader className="bg-zinc-50/50">
-            <TableRow>
-              <TableHead>Producto</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Costo (Base)</TableHead>
-              <TableHead>Precio Sug.</TableHead>
-              <TableHead>Precio Venta</TableHead>
-              <TableHead>Margen</TableHead>
+          <TableHeader className="bg-muted/50">
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground">Producto</TableHead>
+              <TableHead className="text-muted-foreground">Tipo</TableHead>
+              <TableHead className="text-muted-foreground">Stock</TableHead>
+              <TableHead className="text-muted-foreground">Costo (Base)</TableHead>
+              <TableHead className="text-muted-foreground">Precio Sug.</TableHead>
+              <TableHead className="text-muted-foreground">Precio Venta</TableHead>
+              <TableHead className="text-muted-foreground">Margen</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No hay productos registrados con esos filtros.
                 </TableCell>
               </TableRow>
             ) : (
               filteredProducts.map(p => {
                 const margin = getMargin(p);
-                const marginClass = margin < (p.targetMargin - 5) ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800';
+                const marginClass = margin < (p.targetMargin - 5) ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
                 
                 return (
-                  <TableRow key={p.id} className="group">
+                  <TableRow key={p.id} className="group border-border hover:bg-muted/30">
                     <TableCell>
-                      <div className="font-medium text-zinc-900">{p.name}</div>
-                      <div className="text-xs text-zinc-500">{p.sku || 'Sin SKU'} • {p.supplier || 'Sin proveedor'}</div>
+                      <div className="font-medium text-zinc-100">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.sku || 'Sin SKU'} • {p.supplier || 'Sin proveedor'}</div>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-zinc-100 text-zinc-600 text-xs font-semibold">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-300 text-[10px] uppercase font-bold tracking-wider">
                         {p.type === 'raw' ? 'M. Prima' : p.type === 'processed' ? 'Procesado' : 'Reventa'}
                       </span>
                     </TableCell>
-                    <TableCell>{p.stock} {p.unit}</TableCell>
+                    <TableCell className="text-zinc-200">{p.stock} {p.unit}</TableCell>
                     <TableCell>
-                      <div>{formatter.format(getUnitCost(p))}</div>
+                      <div className="text-zinc-200">{formatter.format(getUnitCost(p))}</div>
                       {p.currency === 'USD' && settings?.currency === 'ARS' && (
-                        <div className="text-[10px] text-zinc-400 font-medium">Original: {usdFormatter.format(p.purchaseCost)}</div>
+                        <div className="text-[10px] text-zinc-500 font-medium">Orig: {usdFormatter.format(p.purchaseCost)}</div>
                       )}
                     </TableCell>
-                    <TableCell className="text-zinc-500">{formatter.format(getSuggestedPrice(p))}</TableCell>
-                    <TableCell className="font-medium">{p.salePrice > 0 ? formatter.format(p.salePrice) : '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatter.format(getSuggestedPrice(p))}</TableCell>
+                    <TableCell className="font-medium text-white">{p.salePrice > 0 ? formatter.format(p.salePrice) : '-'}</TableCell>
                     <TableCell>
                       {isNaN(margin) ? '-' : (
-                         <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${marginClass}`}>
+                         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${marginClass}`}>
                             {margin.toFixed(1)}%
                          </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(p)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(p)} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-white">
                         Editar
                       </Button>
                     </TableCell>
@@ -274,20 +278,20 @@ export default function Products() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[800px] h-[90vh] sm:h-auto overflow-y-auto">
+        <DialogContent className="sm:max-w-[800px] h-[90vh] sm:h-auto overflow-y-auto bg-card border-border text-foreground">
           <DialogHeader className="flex flex-row items-center justify-between mt-2">
-            <DialogTitle>{editId ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{editId ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-6 mt-4">
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nombre del producto</Label>
-                  <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej. Jabón líquido pino" />
+                  <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ej. Jabón líquido pino" className="bg-input" />
                 </div>
                 <div className="space-y-2">
                   <Label>Tipo</Label>
                   <Select value={formData.type} onValueChange={v => setFormData({...formData, type: v as any})}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-input">
                       <SelectValue>
                          {formData.type === 'raw' && 'Materia Prima'}
                          {formData.type === 'processed' && 'Producto Procesado'}
@@ -303,7 +307,7 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>SKU / Código</Label>
-                  <Input value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} placeholder="Ej. JAB-001" />
+                  <Input value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} placeholder="Ej. JAB-001" className="bg-input" />
                 </div>
                 <div className="space-y-2">
                   <Label>Unidad de medida</Label>
@@ -311,7 +315,7 @@ export default function Products() {
                     setFormData({...formData, unit: val});
                     if (val !== 'otra') setCustomUnit('');
                   }}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-input">
                       <SelectValue placeholder="Seleccionar unidad..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -322,26 +326,26 @@ export default function Products() {
                     </SelectContent>
                   </Select>
                   {(!allUnits.includes(formData.unit) || formData.unit === 'otra') && (
-                    <Input autoFocus required placeholder="Escriba la unidad..." value={customUnit} onChange={e => setCustomUnit(e.target.value)} />
+                    <Input autoFocus required placeholder="Escriba la unidad..." value={customUnit} onChange={e => setCustomUnit(e.target.value)} className="bg-input" />
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label>Proveedor</Label>
-                  <Input value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} placeholder="Nombre del proveedor" />
+                  <Input value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} placeholder="Nombre del proveedor" className="bg-input" />
                 </div>
                 <div className="space-y-2">
                   <Label>Categoría</Label>
-                  <Input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ej. Limpieza" />
+                  <Input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ej. Limpieza" className="bg-input" />
                 </div>
              </div>
 
-             <div className="border-t pt-4">
-                <h3 className="text-sm font-semibold mb-4 text-zinc-900">Costos y cantidades</h3>
+             <div className="border-t border-border pt-4">
+                <h3 className="text-sm font-semibold mb-4 text-white">Costos y cantidades</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>Moneda de compra</Label>
                     <Select value={formData.currency} onValueChange={v => setFormData({...formData, currency: v})}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-input">
                          <SelectValue>{formData.currency}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
@@ -355,48 +359,52 @@ export default function Products() {
                   </div>
                   <div className="space-y-2">
                     <Label>Costo de compra</Label>
-                    <Input type="number" step="0.01" min="0" required value={formData.purchaseCost} onChange={e => setFormData({...formData, purchaseCost: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" required value={formData.purchaseCost} onChange={e => setFormData({...formData, purchaseCost: e.target.value})} className="bg-input" />
                   </div>
                   <div className="space-y-2">
                     <Label>Gasto extra (flete)</Label>
-                    <Input type="number" step="0.01" min="0" value={formData.extraCost} onChange={e => setFormData({...formData, extraCost: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" value={formData.extraCost} onChange={e => setFormData({...formData, extraCost: e.target.value})} className="bg-input" />
                   </div>
                   <div className="space-y-2">
                     <Label>Stock actual</Label>
-                    <Input type="number" step="0.01" min="0" required value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" required value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} className="bg-input" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Límite stock bajo</Label>
+                    <Input type="number" step="0.01" min="0" value={formData.minStock} onChange={e => setFormData({...formData, minStock: e.target.value})} className="bg-input" />
                   </div>
                   <div className="space-y-2">
                     <Label>Merma (%)</Label>
-                    <Input type="number" step="0.01" min="0" max="99" value={formData.wasteRate} onChange={e => setFormData({...formData, wasteRate: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" max="99" value={formData.wasteRate} onChange={e => setFormData({...formData, wasteRate: e.target.value})} className="bg-input" />
                   </div>
                   <div className="space-y-2">
                     <Label>Margen obj. (%)</Label>
-                    <Input type="number" step="0.01" min="0" required value={formData.targetMargin} onChange={e => setFormData({...formData, targetMargin: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" required value={formData.targetMargin} onChange={e => setFormData({...formData, targetMargin: e.target.value})} className="bg-input" />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Precio de venta (Opcional, en {settings?.currency || 'ARS'})</Label>
-                    <Input type="number" step="0.01" min="0" value={formData.salePrice} onChange={e => setFormData({...formData, salePrice: e.target.value})} />
+                    <Input type="number" step="0.01" min="0" value={formData.salePrice} onChange={e => setFormData({...formData, salePrice: e.target.value})} className="bg-input" />
                   </div>
                 </div>
              </div>
 
-             <div className="bg-zinc-50 p-4 rounded-lg flex items-center justify-around text-center border relative overflow-hidden">
+             <div className="bg-muted/50 p-4 rounded-xl flex items-center justify-around text-center border border-border relative overflow-hidden shadow-inner">
                 {formData.currency === 'USD' && settings?.currency === 'ARS' && (
-                  <div className="absolute top-0 inset-x-0 bg-emerald-100 text-emerald-800 text-[10px] py-0.5 font-bold tracking-widest uppercase">
+                  <div className="absolute top-0 inset-x-0 bg-emerald-500/20 text-emerald-400 text-[10px] py-1 font-bold tracking-widest uppercase border-b border-emerald-500/20">
                     Calculado usando tipo de cambio: ${settings.usdRate || 1}
                   </div>
                 )}
-                <div className="mt-2">
-                  <span className="block text-xs font-semibold text-zinc-500 uppercase tracking-widest">Costo Unit. Real</span>
-                  <strong className="text-xl text-zinc-900">{formatter.format(getUnitCost(formData))}</strong>
+                <div className="mt-4">
+                  <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-widest">Costo Unit. Real</span>
+                  <strong className="text-xl text-white">{formatter.format(getUnitCost(formData))}</strong>
                 </div>
-                <div className="mt-2">
-                  <span className="block text-xs font-semibold text-zinc-500 uppercase tracking-widest">Precio Sugerido</span>
-                  <strong className="text-xl text-zinc-900">{formatter.format(getSuggestedPrice(formData))}</strong>
+                <div className="mt-4">
+                  <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-widest">Precio Sugerido</span>
+                  <strong className="text-xl text-primary">{formatter.format(getSuggestedPrice(formData))}</strong>
                 </div>
-                <div className="mt-2">
-                  <span className="block text-xs font-semibold text-zinc-500 uppercase tracking-widest">Margen Actual</span>
-                  <strong className="text-xl text-zinc-900">
+                <div className="mt-4">
+                  <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-widest">Margen Actual</span>
+                  <strong className="text-xl text-white">
                     {formData.salePrice ? `${getMargin(formData).toFixed(1)}%` : '-'}
                   </strong>
                 </div>
@@ -409,10 +417,10 @@ export default function Products() {
                   </Button>
                 ) : <div></div>}
                 <div className="flex gap-2 ml-auto">
-                  <DialogClose render={<Button type="button" variant="outline" />}>
+                  <DialogClose render={<Button type="button" variant="outline" className="border-border text-foreground hover:bg-muted" />}>
                     Cancelar
                   </DialogClose>
-                  <Button type="submit">Guardar producto</Button>
+                  <Button type="submit" className="bg-primary text-primary-foreground hover:bg-orange-500">Guardar producto</Button>
                 </div>
              </DialogFooter>
           </form>
@@ -420,19 +428,19 @@ export default function Products() {
       </Dialog>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-muted-foreground">
               Esta acción no se puede deshacer. Se eliminará el producto permanentemente de tu base de datos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-border hover:bg-muted">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
               if (deleteConfirmId) handleDelete(deleteConfirmId);
               setDeleteConfirmId(null);
-            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+            }} className="bg-destructive hover:bg-red-600 text-white">Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

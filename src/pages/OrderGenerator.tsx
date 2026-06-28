@@ -43,18 +43,21 @@ export default function OrderGenerator() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Generador de Pedidos</h1>
-        <p className="text-zinc-500 mt-1">Automatiza la reposición de stock sugiriendo compras basadas en tu inventario bajo.</p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="border-b border-border pb-4 flex items-center gap-3">
+        <Truck className="w-8 h-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Generador de Pedidos</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Automatiza la reposición de stock sugiriendo compras basadas en tu inventario bajo.</p>
+        </div>
       </div>
 
       {suppliersList.length === 0 ? (
-        <Card className="bg-zinc-50 border-dashed border-2">
-          <CardContent className="h-64 flex flex-col items-center justify-center text-center">
-            <Truck className="w-12 h-12 text-zinc-300 mb-4" />
-            <h3 className="text-lg font-medium text-zinc-900">¡Todo en orden!</h3>
-            <p className="text-sm text-zinc-500 mt-1 max-w-sm">No hay productos por debajo del límite de stock ({settings?.lowStockLimit || 5} unidades). No necesitas pedir nada por ahora.</p>
+        <Card className="bg-card border-border border-dashed border-2 shadow-sm">
+          <CardContent className="h-64 flex flex-col items-center justify-center text-center p-6">
+            <Truck className="w-12 h-12 text-zinc-600 mb-4" />
+            <h3 className="text-lg font-medium text-white">¡Todo en orden!</h3>
+            <p className="text-sm text-zinc-400 mt-2 max-w-sm leading-relaxed">No hay productos por debajo del límite de stock ({settings?.lowStockLimit || 5} unidades). No necesitas pedir nada por ahora.</p>
           </CardContent>
         </Card>
       ) : (
@@ -62,30 +65,30 @@ export default function OrderGenerator() {
           {suppliersList.map(supplier => {
             const items = suggestedOrders[supplier];
             return (
-              <Card key={supplier} className="flex flex-col">
-                <CardHeader className="pb-3 border-b">
+              <Card key={supplier} className="flex flex-col bg-card border-border shadow-lg hover:border-zinc-700 transition-colors">
+                <CardHeader className="pb-3 border-b border-border bg-muted/10">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{supplier}</CardTitle>
-                      <CardDescription>{items.length} productos con bajo stock</CardDescription>
+                      <CardTitle className="text-lg text-white font-bold">{supplier}</CardTitle>
+                      <CardDescription className="text-zinc-400 font-mono text-xs mt-1">{items.length} productos con bajo stock</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4 flex-1">
                   <div className="space-y-3">
                     {items.map(item => (
-                      <div key={item.id} className="flex justify-between items-center text-sm border-b border-zinc-100 pb-2 last:border-0 last:pb-0">
+                      <div key={item.id} className="flex justify-between items-center text-sm border-b border-border/50 pb-3 last:border-0 last:pb-0">
                         <div className="pr-4">
-                          <span className="font-medium text-zinc-900 block">{item.name}</span>
-                          <span className="text-xs text-red-500 block">Quedan: {item.stock} {item.unit}</span>
+                          <span className="font-medium text-zinc-200 block">{item.name}</span>
+                          <span className="text-xs text-red-400 block font-mono mt-0.5">Quedan: {item.stock} {item.unit}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
-                <div className="p-4 bg-zinc-50 border-t rounded-b-xl flex gap-2">
-                  <Button variant="outline" className="w-full text-xs font-semibold" onClick={() => copyToClipboard(supplier)}>
-                    <Copy className="w-4 h-4 mr-2" /> Copiar lista
+                <div className="p-4 bg-muted/20 border-t border-border rounded-b-xl flex gap-2">
+                  <Button variant="outline" className="w-full text-xs font-semibold border-primary/50 text-primary hover:bg-primary hover:text-white transition-colors group" onClick={() => copyToClipboard(supplier)}>
+                    <Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Copiar lista
                   </Button>
                 </div>
               </Card>

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, Plus, Eye, Download, Pencil } from 'lucide-react';
+import { Trash2, Plus, Eye, Download, Pencil, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -71,9 +71,10 @@ export default function Billing() {
       
       if (isR) {
         const rec = recipes.find(r => r.id === tId);
-        if (rec) {
-           let price = rec.salePrice;
-           const pCurr = defaultCurrency; // Recipes fallback to base currency usually
+        const prod = rec ? products.find(p => p.id === rec.productId) : null;
+        if (prod) {
+           let price = prod.salePrice;
+           const pCurr = prod.currency || defaultCurrency;
            if (pCurr === 'USD' && currency === 'ARS') price *= exchangeRate;
            if (pCurr === 'ARS' && currency === 'USD') price /= exchangeRate;
            newItems[index].customPrice = price;
@@ -244,7 +245,7 @@ export default function Billing() {
     
     const tableData = viewSaleDetails.items.map((it: any) => {
       const itemName = it.isRecipe 
-        ? recipes.find(r => r.id === it.itemId)?.name || 'Receta Eliminada'
+        ? products.find(p => p.id === recipes.find(r => r.id === it.itemId)?.productId)?.name || 'Receta Eliminada'
         : products.find(p => p.id === it.itemId)?.name || 'Producto Eliminado';
       
       return [
@@ -273,30 +274,33 @@ export default function Billing() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-12">
-      <div className="mb-6 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Facturación / Ventas</h1>
-          <p className="text-zinc-500 mt-1">Registra ventas y emite cotizaciones a tus clientes.</p>
+    <div className="max-w-5xl mx-auto pb-12 animate-in fade-in duration-500">
+      <div className="mb-6 flex justify-between items-end border-b border-border pb-4">
+        <div className="flex items-center gap-3">
+          <FileText className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Facturación / Ventas</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Registra ventas y emite cotizaciones a tus clientes.</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card className="shadow-sm border-zinc-200/60 md:col-span-2">
-          <CardHeader>
-            <CardTitle>Nueva Venta</CardTitle>
-            <CardDescription>Añade los productos, define las cantidades y registra la venta.</CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 items-start">
+        <Card className="shadow-lg border-border bg-card lg:col-span-7 xl:col-span-8 sticky top-24">
+          <CardHeader className="border-b border-border bg-muted/30">
+            <CardTitle className="text-white">Nueva Venta</CardTitle>
+            <CardDescription className="text-muted-foreground">Añade los productos, define las cantidades y registra la venta.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div className="space-y-2">
-                  <Label>Cliente / Referencia</Label>
-                  <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Ej. Juan Pérez" />
+                  <Label className="text-zinc-300">Cliente / Referencia</Label>
+                  <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Ej. Laboratorios S.A." className="bg-input border-border text-white" />
                </div>
                <div className="space-y-2">
-                 <Label>Moneda de la Factura</Label>
+                 <Label className="text-zinc-300">Moneda de la Factura</Label>
                  <Select value={currency} onValueChange={setCurrency}>
-                    <SelectTrigger><SelectValue/></SelectTrigger>
+                    <SelectTrigger className="bg-input border-border text-white"><SelectValue/></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ARS">ARS</SelectItem>
                       <SelectItem value="USD">USD</SelectItem>
@@ -305,24 +309,24 @@ export default function Billing() {
                </div>
             </div>
             
-            <div className="border border-zinc-200 rounded-lg overflow-hidden overflow-x-auto">
+            <div className="border border-border rounded-lg overflow-hidden overflow-x-auto shadow-sm">
                 <table className="w-full min-w-[600px] text-sm text-left">
-                  <thead className="bg-zinc-50 text-zinc-500 font-medium border-b border-zinc-200">
+                  <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
                     <tr>
-                      <th className="px-4 py-3">Tipo</th>
-                      <th className="px-4 py-3">Item</th>
-                      <th className="px-4 py-3 w-24">Cantidad</th>
-                      <th className="px-4 py-3 w-28">Precio U.</th>
-                      <th className="px-4 py-3">Subtotal</th>
+                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold">Tipo</th>
+                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold">Item</th>
+                      <th className="px-4 py-3 w-24 text-xs uppercase tracking-wider font-bold text-right">Cantidad</th>
+                      <th className="px-4 py-3 w-28 text-xs uppercase tracking-wider font-bold text-right">Precio U.</th>
+                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold text-right">Subtotal</th>
                       <th className="px-4 py-3 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-200">
+                  <tbody className="divide-y divide-border/50">
                     {items.map((it, idx) => (
-                      <tr key={idx} className="bg-white">
+                      <tr key={idx} className="bg-card hover:bg-muted/20 transition-colors group">
                         <td className="px-4 py-2">
                            <Select value={it.isRecipe ? 'recipe' : 'product'} onValueChange={v => updateItem(idx, 'isRecipe', v === 'recipe')}>
-                              <SelectTrigger className="w-28 border-0 shadow-none">
+                              <SelectTrigger className="w-28 border-border bg-input text-white text-xs">
                                 <SelectValue>
                                   {it.isRecipe ? 'Receta' : 'Prod.'}
                                 </SelectValue>
@@ -335,111 +339,113 @@ export default function Billing() {
                         </td>
                         <td className="px-4 py-2">
                            <Select value={it.itemId || undefined} onValueChange={v => updateItem(idx, 'itemId', v)}>
-                              <SelectTrigger className="w-full border-0 shadow-none">
+                              <SelectTrigger className="w-full border-border bg-input text-white text-sm">
                                 <SelectValue placeholder="Seleccionar...">
                                   {it.itemId 
                                      ? (it.isRecipe 
-                                         ? recipes.find(r => r.id === it.itemId)?.name 
+                                         ? products.find(p => p.id === recipes.find(r => r.id === it.itemId)?.productId)?.name 
                                          : products.find(p => p.id === it.itemId)?.name) 
                                      : ''}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {it.isRecipe ? 
-                                    recipes.map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>) :
+                                    recipes.map((r: any) => <SelectItem key={r.id} value={r.id}>{products.find(p => p.id === r.productId)?.name || 'Receta'}</SelectItem>) :
                                     products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
                                 }
                               </SelectContent>
                            </Select>
                         </td>
                         <td className="px-4 py-2">
-                           <Input type="number" min="0.1" step="any" value={it.quantity === '' ? '' : it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))} className="w-20" />
+                           <Input type="number" min="0.1" step="any" value={it.quantity === '' ? '' : it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))} className="w-20 bg-input border-border font-mono text-right text-sm" />
                         </td>
                         <td className="px-4 py-2">
-                           <Input type="number" min="0" step="any" value={it.customPrice === '' ? '' : it.customPrice} onChange={e => updateItem(idx, 'customPrice', e.target.value === '' ? '' : Number(e.target.value))} className="w-24" />
+                           <Input type="number" min="0" step="any" value={it.customPrice === '' ? '' : it.customPrice} onChange={e => updateItem(idx, 'customPrice', e.target.value === '' ? '' : Number(e.target.value))} className="w-24 bg-input border-border font-mono text-right text-sm" />
                         </td>
-                        <td className="px-4 py-2 font-medium">
+                        <td className="px-4 py-2 font-medium font-mono text-primary text-right text-sm">
                            {it.quantity !== '' && it.customPrice !== '' ? formatMoney(Number(it.quantity) * Number(it.customPrice), currency) : ''}
                         </td>
                         <td className="px-4 py-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(idx)}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(idx)} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-red-400 hover:bg-red-500/10">
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </td>
                       </tr>
                     ))}
                     {items.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-zinc-500 text-sm">
-                          No hay ítems en esta venta.
+                        <td colSpan={6} className="px-4 py-12 text-center text-zinc-500 text-sm">
+                          No hay ítems en esta venta. Haz clic en "Agregar Ítem".
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
-                <div className="bg-zinc-50 p-4 flex justify-between items-center border-t border-zinc-200">
-                  <Button variant="outline" size="sm" onClick={handleAddItem}>
+                <div className="bg-muted/30 p-4 flex justify-between items-center border-t border-border/50">
+                  <Button variant="outline" size="sm" onClick={handleAddItem} className="border-border text-zinc-300 hover:text-white hover:bg-muted">
                     <Plus className="w-4 h-4 mr-2" />
                     Agregar Ítem
                   </Button>
                   <div className="text-lg flex items-center">
-                     <span className="text-zinc-500 mr-2">Total:</span>
-                     <span className="font-bold tracking-tight text-xl text-zinc-900 bg-white px-3 py-1 rounded-md border border-zinc-200 shadow-sm">{formatMoney(totalAmount, currency)}</span>
+                     <span className="text-zinc-400 mr-3 text-sm uppercase tracking-wide font-bold">Total:</span>
+                     <span className="font-bold tracking-tight text-2xl text-primary font-mono">{formatMoney(totalAmount, currency)}</span>
                   </div>
                 </div>
             </div>
 
-            <div className="flex justify-end pt-2 gap-3">
+            <div className="flex justify-end pt-4 gap-3">
                {editSaleId && (
                   <Button variant="ghost" onClick={() => {
                      setEditSaleId(null);
                      setClientName('');
                      setItems([]);
-                  }}>Cancelar</Button>
+                  }} className="text-zinc-400 hover:text-white">Cancelar Edición</Button>
                )}
-               <Button onClick={handleSave} className="h-12 px-8 text-base font-bold bg-amber-500 hover:bg-amber-600 text-zinc-950">
+               <Button onClick={handleSave} className="h-11 px-8 text-base font-bold bg-primary hover:bg-orange-500 text-white shadow-md">
                  {editSaleId ? 'Guardar Cambios' : 'Registrar Venta'}
                </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="md:col-span-2">
-          <h2 className="text-xl font-bold tracking-tight mb-4 mt-6">Historial de Ventas</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-white mb-2">Historial de Ventas</h2>
+          <div className="flex flex-col gap-3">
              {sales.map(s => (
-               <Card key={s.id} className="shadow-sm border-zinc-200/60 transition-all hover:shadow-md">
-                 <CardHeader className="pb-3">
+               <Card key={s.id} className="shadow-lg border-border bg-card transition-all hover:border-zinc-700">
+                 <CardHeader className="pb-3 pt-4 px-4 border-b border-border/50 bg-muted/10">
                    <div className="flex justify-between items-start">
                      <div className="min-w-0 pr-1">
-                       <CardTitle className="text-base truncate" title={s.clientName}>{s.clientName}</CardTitle>
-                       <CardDescription>{new Date(s.createdAt?.toMillis ? s.createdAt.toMillis() : Date.now()).toLocaleDateString()}</CardDescription>
+                       <CardTitle className="text-base truncate text-white" title={s.clientName}>{s.clientName}</CardTitle>
+                       <CardDescription className="text-zinc-400 font-mono text-xs">{new Date(s.createdAt?.toMillis ? s.createdAt.toMillis() : Date.now()).toLocaleDateString()}</CardDescription>
                      </div>
                      <div className="flex -mt-1 -mr-1 flex-shrink-0">
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={() => setViewSaleDetails(s)}>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-primary hover:bg-primary/10" onClick={() => setViewSaleDetails(s)}>
                          <Eye className="w-4 h-4" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-amber-600 hover:bg-amber-50" onClick={() => handleEditSale(s)}>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => handleEditSale(s)}>
                          <Pencil className="w-4 h-4" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50" onClick={() => setDeleteConfirmId(s.id)}>
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => setDeleteConfirmId(s.id)}>
                          <Trash2 className="w-4 h-4" />
                        </Button>
                      </div>
                    </div>
                  </CardHeader>
-                 <CardContent>
-                   <div className="text-xl font-bold tracking-tight text-amber-600">
-                     {formatMoney(s.totalAmount, s.currency || 'ARS')}
-                   </div>
-                   <div className="text-xs text-zinc-500 mt-2">
-                     {s.items.length} ítem{s.items.length !== 1 && 's'}
+                 <CardContent className="px-4 py-3">
+                   <div className="flex items-end justify-between">
+                     <div className="text-xs text-zinc-500 font-medium bg-muted/50 px-2 py-1 rounded">
+                       {s.items.length} ítem{s.items.length !== 1 && 's'}
+                     </div>
+                     <div className="text-lg font-bold tracking-tight text-primary font-mono">
+                       {formatMoney(s.totalAmount, s.currency || 'ARS')}
+                     </div>
                    </div>
                  </CardContent>
                </Card>
              ))}
              {sales.length === 0 && (
-               <div className="col-span-1 sm:col-span-2 md:col-span-3 text-center py-12 text-zinc-500 bg-white border border-dashed rounded-xl">
+               <div className="text-center py-12 text-zinc-500 bg-card border border-border border-dashed rounded-xl">
                  Aún no has registrado ninguna venta.
                </div>
              )}
@@ -448,73 +454,73 @@ export default function Billing() {
       </div>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar este registro de venta?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">¿Eliminar este registro de venta?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
               Esta acción no se puede deshacer. Se eliminará el registro de venta permanentemente de tu base de datos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-border hover:bg-muted text-zinc-300">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
               if (deleteConfirmId) handleDeleteSale(deleteConfirmId);
               setDeleteConfirmId(null);
-            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+            }} className="bg-red-600 hover:bg-red-500 text-white">Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <Dialog open={!!viewSaleDetails} onOpenChange={(open) => !open && setViewSaleDetails(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-xl md:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle>Detalle de Venta - {viewSaleDetails?.clientName}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Detalle de Venta - {viewSaleDetails?.clientName}</DialogTitle>
+            <DialogDescription className="text-zinc-400">
               Fecha: {viewSaleDetails && new Date(viewSaleDetails.createdAt?.toMillis ? viewSaleDetails.createdAt.toMillis() : Date.now()).toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4 border rounded-md overflow-x-auto w-full">
-            <table className="w-full text-sm min-w-[500px]">
-              <thead className="bg-zinc-50 border-b">
+          <div className="mt-4 border border-border rounded-lg overflow-x-auto w-full shadow-lg">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-4 py-2 text-left">Ítem</th>
-                  <th className="px-4 py-2 text-center">Tipo</th>
-                  <th className="px-4 py-2 text-right">Cant.</th>
-                  <th className="px-4 py-2 text-right">Precio U.</th>
-                  <th className="px-4 py-2 text-right">Subtotal</th>
+                  <th className="px-4 py-3 text-left text-muted-foreground text-xs uppercase tracking-wider font-bold">Ítem</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground text-xs uppercase tracking-wider font-bold">Tipo</th>
+                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Cant.</th>
+                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Precio U.</th>
+                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Subtotal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y text-zinc-700">
+              <tbody className="divide-y divide-border/50 text-zinc-300">
                 {viewSaleDetails?.items.map((it: any, i: number) => {
                   const itemName = it.isRecipe 
-                    ? recipes.find(r => r.id === it.itemId)?.name || 'Receta Eliminada'
+                    ? products.find(p => p.id === recipes.find(r => r.id === it.itemId)?.productId)?.name || 'Receta Eliminada'
                     : products.find(p => p.id === it.itemId)?.name || 'Producto Eliminado';
                   
                   return (
-                    <tr key={i}>
-                      <td className="px-4 py-2">{itemName}</td>
-                      <td className="px-4 py-2 text-center text-xs text-zinc-500">{it.isRecipe ? 'Receta' : 'Producto'}</td>
-                      <td className="px-4 py-2 text-right">{it.quantity}</td>
-                      <td className="px-4 py-2 text-right">{formatMoney(it.customPrice || 0, viewSaleDetails.currency)}</td>
-                      <td className="px-4 py-2 text-right font-medium">{formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)}</td>
+                    <tr key={i} className="hover:bg-muted/20">
+                      <td className="px-4 py-3 font-medium text-white">{itemName}</td>
+                      <td className="px-4 py-3 text-center text-xs text-zinc-500 uppercase font-bold">{it.isRecipe ? 'Receta' : 'Producto'}</td>
+                      <td className="px-4 py-3 text-right font-mono text-sm">{it.quantity}</td>
+                      <td className="px-4 py-3 text-right font-mono text-sm">{formatMoney(it.customPrice || 0, viewSaleDetails.currency)}</td>
+                      <td className="px-4 py-3 text-right font-mono font-medium text-primary text-sm">{formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)}</td>
                     </tr>
                   );
                 })}
               </tbody>
-              <tfoot className="bg-zinc-50 border-t">
+              <tfoot className="bg-muted/30 border-t border-border">
                 <tr>
-                  <td colSpan={4} className="px-4 py-3 text-right font-bold">Total:</td>
-                  <td className="px-4 py-3 text-right font-bold text-lg text-amber-600">{viewSaleDetails && formatMoney(viewSaleDetails.totalAmount, viewSaleDetails.currency)}</td>
+                  <td colSpan={4} className="px-4 py-4 text-right font-bold text-zinc-400 uppercase text-xs tracking-wider">Total:</td>
+                  <td className="px-4 py-4 text-right font-bold text-xl text-primary font-mono">{viewSaleDetails && formatMoney(viewSaleDetails.totalAmount, viewSaleDetails.currency)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
-          <DialogFooter className="flex items-center sm:justify-between">
-            <Button variant="outline" className="mr-auto border-amber-200 text-amber-700 hover:bg-amber-50 group" onClick={exportToPdf}>
+          <DialogFooter className="flex items-center sm:justify-between mt-6">
+            <Button variant="outline" className="mr-auto border-primary text-primary hover:bg-primary/10 group" onClick={exportToPdf}>
               <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />
               Descargar PDF
             </Button>
-            <Button variant="outline" onClick={() => setViewSaleDetails(null)}>Cerrar</Button>
+            <Button variant="outline" onClick={() => setViewSaleDetails(null)} className="border-border hover:bg-muted text-zinc-300">Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

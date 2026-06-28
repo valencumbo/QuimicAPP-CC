@@ -63,6 +63,7 @@ export interface Purchase {
   unitCost: number;
   extraCost: number;
   note: string;
+  currency?: string;
   createdAt: any;
 }
 export interface Recipe {

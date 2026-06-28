@@ -34,12 +34,12 @@ import { Loader2 } from 'lucide-react';
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50"><Loader2 className="animate-spin text-zinc-400 w-8 h-8" /></div>;
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-muted-foreground w-8 h-8" /></div>;
   if (!user) return <Navigate to="/login" replace />;
 
   return (
     <WorkspaceProvider userId={user.uid}>
-      <div className="flex h-screen bg-zinc-50 text-zinc-900 font-sans relative">
+      <div className="flex h-screen bg-background text-foreground font-sans relative">
         <Sidebar />
         <main className="flex-1 overflow-auto flex flex-col">
           <Topbar />

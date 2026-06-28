@@ -3,7 +3,7 @@ import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { auth } from '@/src/lib/firebase';
 import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Search, Trash2, ArrowRightLeft, MessageCircle } from 'lucide-react';
+import { Plus, Search, Trash2, ArrowRightLeft, MessageCircle, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -143,18 +143,21 @@ export default function Suppliers() {
   }, [products, supplierAName, supplierBName]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
-          <p className="text-zinc-500 mt-1">Directorio de proveedores y condiciones comerciales.</p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+        <div className="flex items-center gap-3">
+          <Truck className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Proveedores</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Directorio de proveedores y condiciones comerciales.</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setIsCompareOpen(true)}>
+          <Button variant="outline" onClick={() => setIsCompareOpen(true)} className="border-border text-zinc-300 hover:text-white hover:bg-muted">
             <ArrowRightLeft className="w-4 h-4 mr-2" />
             Comparar precios
           </Button>
-          <Button onClick={() => handleOpenDialog()}>
+          <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-orange-500 text-white font-bold">
             <Plus className="w-4 h-4 mr-2" />
             Nuevo proveedor
           </Button>
@@ -166,22 +169,22 @@ export default function Suppliers() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <Input 
             placeholder="Buscar proveedor o contacto..." 
-            className="pl-9"
+            className="pl-9 bg-input border-border text-white"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="border rounded-lg bg-white overflow-x-auto">
+      <div className="border border-border rounded-lg bg-card overflow-x-auto shadow-lg">
         <Table>
-          <TableHeader className="bg-zinc-50/50">
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Contacto</TableHead>
-              <TableHead>Ubicación</TableHead>
-              <TableHead>Tiempo de envío</TableHead>
-              <TableHead>Cond. Pago</TableHead>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="border-border hover:bg-transparent">
+              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Nombre</TableHead>
+              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Contacto</TableHead>
+              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Ubicación</TableHead>
+              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Tiempo de envío</TableHead>
+              <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Cond. Pago</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -194,18 +197,18 @@ export default function Suppliers() {
               </TableRow>
             ) : (
               filteredSuppliers.map(s => (
-                <TableRow key={s.id} className="group">
-                  <TableCell className="font-medium text-zinc-900">{s.name}</TableCell>
+                <TableRow key={s.id} className="border-border hover:bg-muted/30 group">
+                  <TableCell className="font-medium text-white">{s.name}</TableCell>
                   <TableCell>
                     {s.contact ? (
                       <div className="flex items-center gap-2">
-                        <span>{s.contact}</span>
+                        <span className="text-zinc-300 font-mono text-sm">{s.contact}</span>
                         {s.contact.replace(/\D/g, '').length >= 8 && (
                           <a 
                             href={`https://wa.me/${s.contact.replace(/\D/g, '')}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-full transition-colors flex-shrink-0"
+                            className="text-emerald-500 hover:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 p-1.5 rounded-full transition-colors flex-shrink-0"
                             title="Abrir chat en WhatsApp"
                           >
                             <WhatsAppIcon className="w-4 h-4" />
@@ -213,14 +216,14 @@ export default function Suppliers() {
                         )}
                       </div>
                     ) : (
-                      '-'
+                      <span className="text-zinc-600">-</span>
                     )}
                   </TableCell>
-                  <TableCell>{s.location || '-'}</TableCell>
-                  <TableCell>{s.deliveryTime > 0 ? `${s.deliveryTime} días` : '-'}</TableCell>
-                  <TableCell>{s.paymentTerms || '-'}</TableCell>
+                  <TableCell className="text-zinc-400">{s.location || '-'}</TableCell>
+                  <TableCell className="text-zinc-400">{s.deliveryTime > 0 ? `${s.deliveryTime} días` : '-'}</TableCell>
+                  <TableCell className="text-zinc-400">{s.paymentTerms || '-'}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(s)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(s)} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary hover:bg-primary/10">
                       Editar
                     </Button>
                   </TableCell>
@@ -232,53 +235,53 @@ export default function Suppliers() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle>{editId ? 'Editar proveedor' : 'Nuevo proveedor'}</DialogTitle>
+            <DialogTitle className="text-white">{editId ? 'Editar proveedor' : 'Nuevo proveedor'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSave} className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>Razón social / Nombre</Label>
-              <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <Label className="text-zinc-300">Razón social / Nombre</Label>
+              <Input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-input border-border" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Contacto</Label>
-                <Input value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} placeholder="Teléfono o Email" />
+                <Label className="text-zinc-300">Contacto</Label>
+                <Input value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} placeholder="Teléfono o Email" className="bg-input border-border" />
               </div>
               <div className="space-y-2">
-                <Label>Ubicación</Label>
-                <Input value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                <Label className="text-zinc-300">Ubicación</Label>
+                <Input value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="bg-input border-border" />
               </div>
               <div className="space-y-2">
-                <Label>Condiciones de pago</Label>
-                <Input value={formData.paymentTerms} onChange={e => setFormData({...formData, paymentTerms: e.target.value})} placeholder="Ej. Contado, 30 días" />
+                <Label className="text-zinc-300">Condiciones de pago</Label>
+                <Input value={formData.paymentTerms} onChange={e => setFormData({...formData, paymentTerms: e.target.value})} placeholder="Ej. Contado, 30 días" className="bg-input border-border" />
               </div>
               <div className="space-y-2">
-                <Label>Moneda de la lista</Label>
-                <Input value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} placeholder="ARS, USD" />
+                <Label className="text-zinc-300">Moneda de la lista</Label>
+                <Input value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} placeholder="ARS, USD" className="bg-input border-border font-mono uppercase" />
               </div>
               <div className="space-y-2">
-                <Label>Llegada prom. (días)</Label>
-                <Input type="number" min="0" value={formData.deliveryTime} onChange={e => setFormData({...formData, deliveryTime: e.target.value})} />
+                <Label className="text-zinc-300">Llegada prom. (días)</Label>
+                <Input type="number" min="0" value={formData.deliveryTime} onChange={e => setFormData({...formData, deliveryTime: e.target.value})} className="bg-input border-border" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Notas</Label>
-              <Input value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Información extra" />
+              <Label className="text-zinc-300">Notas</Label>
+              <Input value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Información extra" className="bg-input border-border" />
             </div>
 
             <DialogFooter className="flex items-center justify-between mt-6">
               {editId ? (
-                <Button type="button" variant="destructive" onClick={() => { setIsDialogOpen(false); setDeleteConfirmId(editId); }}>
+                <Button type="button" variant="destructive" onClick={() => { setIsDialogOpen(false); setDeleteConfirmId(editId); }} className="bg-red-600 hover:bg-red-500 text-white">
                   <Trash2 className="w-4 h-4 mr-2" /> Eliminar
                 </Button>
               ) : <div></div>}
               <div className="flex gap-2">
-                <DialogClose render={<Button type="button" variant="outline" />}>
+                <DialogClose render={<Button type="button" variant="outline" className="border-border hover:bg-muted text-zinc-300" />}>
                   Cancelar
                 </DialogClose>
-                <Button type="submit">Guardar</Button>
+                <Button type="submit" className="bg-primary hover:bg-orange-500 text-white font-bold">Guardar</Button>
               </div>
             </DialogFooter>
           </form>
@@ -286,15 +289,15 @@ export default function Suppliers() {
       </Dialog>
 
       <Dialog open={isCompareOpen} onOpenChange={setIsCompareOpen}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[700px] bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle>Comparar precios de proveedores</DialogTitle>
+            <DialogTitle className="text-white">Comparar precios de proveedores</DialogTitle>
           </DialogHeader>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Proveedor A</Label>
+              <Label className="text-zinc-300">Proveedor A</Label>
               <Select value={compareA} onValueChange={setCompareA}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-input border-border text-white">
                   <SelectValue placeholder="Seleccionar">
                     {suppliers.find(s => s.id === compareA)?.name || 'Seleccionar'}
                   </SelectValue>
@@ -305,9 +308,9 @@ export default function Suppliers() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Proveedor B</Label>
+              <Label className="text-zinc-300">Proveedor B</Label>
               <Select value={compareB} onValueChange={setCompareB}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-input border-border text-white">
                   <SelectValue placeholder="Seleccionar">
                     {suppliers.find(s => s.id === compareB)?.name || 'Seleccionar'}
                   </SelectValue>
@@ -322,18 +325,18 @@ export default function Suppliers() {
           <div className="mt-6">
             {supplierAName && supplierBName ? (
                intersectionProducts.length === 0 ? (
-                 <div className="text-center p-8 bg-zinc-50 border rounded-lg text-zinc-500">
+                 <div className="text-center p-8 bg-muted/20 border border-border rounded-lg text-zinc-500 text-sm">
                    No se encontraron productos con el mismo nombre en ambos proveedores para comparar.
                  </div>
                ) : (
-                 <div className="border rounded-lg bg-white overflow-hidden max-h-[40vh] overflow-y-auto">
+                 <div className="border border-border rounded-lg bg-card overflow-hidden max-h-[40vh] overflow-y-auto">
                    <Table>
-                     <TableHeader className="bg-zinc-50 sticky top-0">
-                       <TableRow>
-                         <TableHead>Producto</TableHead>
-                         <TableHead className="text-right">{supplierAName}</TableHead>
-                         <TableHead className="text-right">{supplierBName}</TableHead>
-                         <TableHead className="text-right">Diferencia</TableHead>
+                     <TableHeader className="bg-muted/50 sticky top-0 border-b border-border">
+                       <TableRow className="border-none hover:bg-transparent">
+                         <TableHead className="text-muted-foreground text-xs uppercase tracking-wider font-bold">Producto</TableHead>
+                         <TableHead className="text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">{supplierAName}</TableHead>
+                         <TableHead className="text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">{supplierBName}</TableHead>
+                         <TableHead className="text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Diferencia</TableHead>
                        </TableRow>
                      </TableHeader>
                      <TableBody>
@@ -342,16 +345,16 @@ export default function Suppliers() {
                          const betterA = ip.costA < ip.costB;
                          const betterB = ip.costB < ip.costA;
                          return (
-                           <TableRow key={i}>
-                             <TableCell className="font-medium text-zinc-900">{ip.name}</TableCell>
-                             <TableCell className={`text-right ${betterA ? 'text-emerald-600 font-bold' : ''}`}>
+                           <TableRow key={i} className="border-border hover:bg-muted/30">
+                             <TableCell className="font-medium text-white">{ip.name}</TableCell>
+                             <TableCell className={`text-right font-mono text-sm ${betterA ? 'text-primary font-bold' : 'text-zinc-400'}`}>
                                {formatter.format(ip.costA)}
                              </TableCell>
-                             <TableCell className={`text-right ${betterB ? 'text-emerald-600 font-bold' : ''}`}>
+                             <TableCell className={`text-right font-mono text-sm ${betterB ? 'text-primary font-bold' : 'text-zinc-400'}`}>
                                {formatter.format(ip.costB)}
                              </TableCell>
-                             <TableCell className="text-right">
-                               <span className={diff < 0 ? 'text-red-500' : diff > 0 ? 'text-emerald-500' : 'text-zinc-500'}>
+                             <TableCell className="text-right font-mono text-xs">
+                               <span className={diff < 0 ? 'text-red-400' : diff > 0 ? 'text-emerald-400' : 'text-zinc-500'}>
                                  {diff === 0 ? 'Igual' : diff > 0 ? `A es ${formatter.format(Math.abs(diff))} mejor` : `B es ${formatter.format(Math.abs(diff))} mejor`}
                                </span>
                              </TableCell>
@@ -363,14 +366,14 @@ export default function Suppliers() {
                  </div>
                )
             ) : (
-              <div className="text-center p-8 bg-zinc-50 border rounded-lg text-zinc-500">
+              <div className="text-center p-8 bg-muted/20 border border-border rounded-lg text-zinc-500 text-sm">
                 Selecciona dos proveedores para ver la comparación.
               </div>
             )}
           </div>
           
           <DialogFooter className="mt-4">
-            <DialogClose render={<Button type="button" variant="outline" />}>
+            <DialogClose render={<Button type="button" variant="outline" className="border-border hover:bg-muted text-zinc-300" />}>
               Cerrar
             </DialogClose>
           </DialogFooter>
@@ -378,19 +381,19 @@ export default function Suppliers() {
       </Dialog>
 
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar este proveedor?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">¿Eliminar este proveedor?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-400">
               Esta acción no se puede deshacer. Se eliminará el proveedor permanentemente de tu base de datos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-border hover:bg-muted text-zinc-300">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => {
               if (deleteConfirmId) handleDelete(deleteConfirmId);
               setDeleteConfirmId(null);
-            }} className="bg-red-500 hover:bg-red-600">Eliminar</AlertDialogAction>
+            }} className="bg-red-600 hover:bg-red-500 text-white">Eliminar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
