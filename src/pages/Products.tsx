@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 export default function Products() {
   const { user } = useAuth();
-  const { settings, products } = useWorkspaceData(user?.uid);
+  const { settings, products, suppliers } = useWorkspaceData(user?.uid);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   
@@ -44,14 +44,16 @@ export default function Products() {
   };
 
   const getSuggestedPrice = (p: any) => {
-    const margin = Math.min(Number(p.targetMargin) || 0, 95) / 100;
-    return getUnitCost(p) / Math.max(1 - margin, 0.05);
+    const margin = Number(p.targetMargin) || 0;
+    return getUnitCost(p) * (1 + margin / 100);
   };
 
   const getMargin = (p: any) => {
     const sp = Number(p.salePrice);
     if (!sp) return NaN;
-    return ((sp - getUnitCost(p)) / sp) * 100;
+    const cost = getUnitCost(p);
+    if (!cost) return NaN;
+    return ((sp - cost) / cost) * 100;
   };
 
   const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: settings?.currency || 'ARS' });
@@ -74,10 +76,18 @@ export default function Products() {
       } else {
         setCustomUnit('');
       }
+      
+      const currentCategory = p.category || '';
+      const allC = Array.from(new Set(products.map(pr => pr.category).filter(Boolean)));
+      if (currentCategory && !allC.includes(currentCategory)) {
+        setCustomCategory(currentCategory);
+      } else {
+        setCustomCategory('');
+      }
 
       setFormData({
         name: p.name || '', sku: p.sku || '', type: p.type || 'resale', unit: currentUnit,
-        supplier: p.supplier || '', category: p.category || '', currency: p.currency || settings?.currency || 'ARS',
+        supplier: p.supplier || 'Sin proveedor especificado', category: currentCategory || 'Sin categoría', currency: p.currency || settings?.currency || 'ARS',
         stock: p.stock ?? '', minStock: p.minStock ?? '', purchaseCost: p.purchaseCost ?? '', extraCost: p.extraCost ?? '',
         wasteRate: p.wasteRate ?? '', targetMargin: p.targetMargin ?? '',
         salePrice: p.salePrice ?? ''
@@ -85,8 +95,9 @@ export default function Products() {
     } else {
       setEditId(null);
       setCustomUnit('');
+      setCustomCategory('');
       setFormData({
-        name: '', sku: '', type: 'resale', unit: 'Unidades', supplier: '', category: '', currency: settings?.currency || 'ARS',
+        name: '', sku: '', type: 'resale', unit: 'Unidades', supplier: 'Sin proveedor especificado', category: 'Sin categoría', currency: settings?.currency || 'ARS',
         stock: '', minStock: '', purchaseCost: '', extraCost: '', wasteRate: '', targetMargin: settings?.defaultMargin || 35, salePrice: ''
       });
     }
@@ -94,8 +105,10 @@ export default function Products() {
   };
 
   const [customUnit, setCustomUnit] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
   const defaultUnits = ['Unidades', 'KG', 'GRS', 'LTS'];
   const allUnits = Array.from(new Set([...defaultUnits, ...(settings?.customUnits || [])]));
+  const allCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,9 +133,23 @@ export default function Products() {
       }
     }
 
+    let finalCategory = formData.category;
+    if (finalCategory === 'otra') {
+      finalCategory = customCategory.trim();
+    } else if (finalCategory === 'Sin categoría') {
+      finalCategory = '';
+    }
+
+    let finalSupplier = formData.supplier;
+    if (finalSupplier === 'Sin proveedor especificado') {
+      finalSupplier = '';
+    }
+
     const payload = {
       ...formData,
       unit: finalUnit,
+      category: finalCategory,
+      supplier: finalSupplier,
       stock: Number(formData.stock) || 0,
       minStock: Number(formData.minStock) || 0,
       purchaseCost: Number(formData.purchaseCost) || 0,
@@ -331,11 +358,38 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Proveedor</Label>
-                  <Input value={formData.supplier} onChange={e => setFormData({...formData, supplier: e.target.value})} placeholder="Nombre del proveedor" className="bg-input" />
+                  <Select value={formData.supplier} onValueChange={val => setFormData({...formData, supplier: val})}>
+                    <SelectTrigger className="bg-input">
+                      <SelectValue placeholder="Seleccionar proveedor..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sin proveedor especificado">Sin proveedor especificado</SelectItem>
+                      {suppliers.map(s => (
+                        <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Categoría</Label>
-                  <Input value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ej. Limpieza" className="bg-input" />
+                  <Select value={formData.category === 'Sin categoría' ? 'Sin categoría' : (allCategories.includes(formData.category) ? formData.category : (formData.category ? 'otra' : 'Sin categoría'))} onValueChange={val => {
+                    setFormData({...formData, category: val});
+                    if (val !== 'otra') setCustomCategory('');
+                  }}>
+                    <SelectTrigger className="bg-input">
+                      <SelectValue placeholder="Seleccionar categoría..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sin categoría">Sin categoría</SelectItem>
+                      {allCategories.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                      <SelectItem value="otra">Otra...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(!allCategories.includes(formData.category) || formData.category === 'otra') && formData.category !== 'Sin categoría' && formData.category !== '' && (
+                    <Input autoFocus placeholder="Escriba la categoría..." value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="bg-input mt-2" />
+                  )}
                 </div>
              </div>
 

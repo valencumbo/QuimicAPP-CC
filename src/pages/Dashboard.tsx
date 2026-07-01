@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Package, TrendingUp, AlertTriangle, Coins, FlaskConical, Activity, Archive } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle, Coins, FlaskConical, Activity, Archive, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays, isSameDay } from 'date-fns';
 import { db } from '@/src/lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { settings, products, purchases, batches, loading } = useWorkspaceData(user?.uid);
   const [sales, setSales] = useState<any[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -105,31 +109,39 @@ export default function Dashboard() {
         <Card className="bg-card border-border shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Valor de Inventario</CardTitle>
-            <Coins className="h-5 w-5 text-emerald-400" />
+            <Coins className="h-5 w-5 text-emerald-400 shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-400">{formatter.format(inventoryValue)}</div>
+            <div className="text-2xl lg:text-3xl font-bold text-emerald-400">{formatter.format(inventoryValue)}</div>
             <p className="text-xs text-muted-foreground mt-1">Capital inmovilizado</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Ingresos Mensuales</CardTitle>
-            <TrendingUp className="h-5 w-5 text-primary" />
+            <TrendingUp className="h-5 w-5 text-primary shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">{formatter.format(currentMonthSales)}</div>
+            <div className="text-2xl lg:text-3xl font-bold text-primary">{formatter.format(currentMonthSales)}</div>
             <p className="text-xs text-muted-foreground mt-1">Facturación actual</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-border shadow-lg">
+        <Card 
+          className={`bg-card border-border shadow-lg transition-colors cursor-pointer hover:bg-zinc-900/50 ${lowStockProducts.length > 0 || expiringBatches.length > 0 ? "border-red-500/20" : ""}`}
+          onClick={() => setAlertsOpen(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Alertas Criticas</CardTitle>
-            <AlertTriangle className={`h-5 w-5 ${lowStockProducts.length > 0 || expiringBatches.length > 0 ? "text-red-500" : "text-zinc-500"}`} />
+            <AlertTriangle className={`h-5 w-5 shrink-0 ${lowStockProducts.length > 0 || expiringBatches.length > 0 ? "text-red-500" : "text-zinc-500"}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">{lowStockProducts.length + expiringBatches.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Atención requerida</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-white">{lowStockProducts.length + expiringBatches.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Ver detalles</p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -232,6 +244,93 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={alertsOpen} onOpenChange={setAlertsOpen}>
+        <DialogContent className="max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Alertas Críticas
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Detalle de los insumos y lotes que requieren tu atención.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-6">
+            {lowStockProducts.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  Stock Crítico ({lowStockProducts.length})
+                </h3>
+                <div className="space-y-2">
+                  {lowStockProducts.map(p => (
+                    <div key={p.id} className="bg-zinc-900/50 p-3 rounded-lg border border-border">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm font-medium text-white">{p.name}</span>
+                        <span className="text-xs font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">Quedan {p.stock}</span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mb-3">Mínimo requerido: {p.minStock}</p>
+                      <Link to="/products" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                        Ir a reponer stock <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {expiringBatches.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Archive className="w-4 h-4 text-red-400" />
+                  Lotes en Riesgo ({expiringBatches.length})
+                </h3>
+                <div className="space-y-2">
+                  {expiringBatches.map(b => {
+                    const prodName = products.find(p => p.id === b.productId)?.name || 'Desconocido';
+                    const expDate = new Date(b.expirationDate);
+                    const diffDays = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    const isCritical = diffDays <= 30;
+
+                    return (
+                      <div key={b.id} className="bg-zinc-900/50 p-3 rounded-lg border border-border">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-sm font-medium text-white block">{prodName}</span>
+                            <span className="text-xs text-zinc-400">Lote: {b.batchNumber} • Quedan: {b.currentQuantity}</span>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                            isCritical ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'
+                          }`}>
+                            {diffDays < 0 ? 'Vencido' : `${diffDays} días`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mb-3">Vencimiento: {expDate.toLocaleDateString()}</p>
+                        <Link to="/lotes" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                          Ir a revisar lote <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {lowStockProducts.length === 0 && expiringBatches.length === 0 && (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
+                <p className="text-sm text-zinc-400">No hay alertas críticas en este momento.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-4 flex justify-end border-t border-border mt-4">
+            <Button variant="outline" onClick={() => setAlertsOpen(false)}>Cerrar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
