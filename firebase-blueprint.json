@@ -123,6 +123,40 @@
       },
       "required": ["workspaceId", "title", "dueDate", "completed", "createdAt", "updatedAt"]
     },
+    "User": {
+      "title": "User",
+      "description": "A user of the system.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "admin", "seller", "stock", "viewer"] },
+        "workspaceId": { "type": "string", "description": "Null if superadmin" },
+        "createdBy": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "lastLogin": { "type": "number" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["email", "displayName", "role", "isActive", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Log of user actions.",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "ip": { "type": "string" }
+      },
+      "required": ["workspaceId", "userId", "userEmail", "action", "entityType", "description", "timestamp"]
+    },
     "Sale": {
       "title": "Sale",
       "description": "Sales records or invoices",
@@ -140,6 +174,10 @@
     }
   },
   "firestore": {
+    "users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "Global users collection with roles and workspace assignment."
+    },
     "workspaces/{workspaceId}": {
       "schema": "#/entities/UserWorkspace",
       "description": "User specific configurations and isolated workspace."
@@ -167,6 +205,10 @@
     "workspaces/{workspaceId}/sales/{saleId}": {
       "schema": "#/entities/Sale",
       "description": "Sales and invoices recorded within the workspace."
+    },
+    "workspaces/{workspaceId}/auditLogs/{logId}": {
+      "schema": "#/entities/AuditLog",
+      "description": "Audit logs for actions performed within the workspace."
     }
   }
 }

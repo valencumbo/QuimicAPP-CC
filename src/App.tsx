@@ -9,14 +9,6 @@ import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
-
-function HomeOrLanding() {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50" />;
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <Landing />;
-}
-
 import Products from './pages/Products';
 import Purchases from './pages/Purchases';
 import Recipes from './pages/Recipes';
@@ -27,10 +19,18 @@ import Billing from './pages/Billing';
 import OrderGenerator from './pages/OrderGenerator';
 import Lotes from './pages/Lotes';
 import Reports from './pages/Reports';
+import Audit from './pages/Audit';
 import Topbar from './components/Topbar';
 import QuickActionBtn from './components/QuickActionBtn';
 import { Toaster } from '@/components/ui/sonner';
 import { Loader2 } from 'lucide-react';
+
+function HomeOrLanding() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50" />;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return <Landing />;
+}
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -72,6 +72,7 @@ export default function App() {
           <Route path="/reminders" element={<Reminders />} />
           <Route path="/order-generator" element={<OrderGenerator />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/audit" element={<Audit />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

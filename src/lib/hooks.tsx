@@ -5,6 +5,8 @@ import {
   collection, doc, onSnapshot, query, serverTimestamp, setDoc, getDocFromServer, where
 } from 'firebase/firestore';
 
+import { UserProfile } from './types';
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,7 @@ export interface Product {
   supplier: string;
   category: string;
   stock: number;
+  minStock?: number;
   purchaseCost: number;
   extraCost: number;
   wasteRate: number;
@@ -171,7 +174,7 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
         const snap = await getDocFromServer(wsRef);
         if (!snap.exists()) {
           await setDoc(wsRef, {
-            ownerId: userId,
+            ownerId: userId, // might not be correct for new workspaces but ok for migration
             settings: { currency: "ARS", defaultMargin: 35, lowStockLimit: 5 },
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
@@ -235,7 +238,33 @@ export function WorkspaceProvider({ children, userId }: { children: React.ReactN
 }
 
 export function useWorkspaceData(userId?: string) {
-  // We keep userId for API compatibility with existing files,
-  // but it's ignored since the context provides it from the wrapper
   return useContext(WorkspaceContext);
+}
+
+export function useAuditLog() {
+  const { user } = useAuth();
+
+  const logAction = async (action: string, entityType: string, description: string, entityId?: string) => {
+    if (!user) return;
+    const workspaceId = user.uid;
+
+    try {
+      const logRef = doc(collection(db, `workspaces/${workspaceId}/auditLogs`));
+      await setDoc(logRef, {
+        workspaceId,
+        userId: user.uid,
+        userEmail: user.email || '',
+        action,
+        entityType,
+        entityId: entityId || '',
+        description,
+        timestamp: serverTimestamp(),
+        ip: '' // client IP not accessible directly here without cloud function
+      });
+    } catch (error) {
+      console.error("Failed to log audit action:", error);
+    }
+  };
+
+  return { logAction };
 }

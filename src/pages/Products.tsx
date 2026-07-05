@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
-import { auth } from '@/src/lib/firebase';
-import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
+import { useWorkspaceData, useAuth, useAuditLog } from '../lib/hooks';
+import { auth } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, Search, Trash2, Beaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,9 @@ import { toast } from 'sonner';
 
 export default function Products() {
   const { user } = useAuth();
-  const { settings, products, suppliers } = useWorkspaceData(user?.uid);
+  const workspaceId = user?.uid;
+  const { settings, products, suppliers } = useWorkspaceData(workspaceId);
+  const { logAction } = useAuditLog();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   
@@ -25,7 +27,7 @@ export default function Products() {
 
   const [formData, setFormData] = useState({
     name: '', sku: '', type: 'resale', unit: 'un', supplier: '', category: '', currency: 'ARS',
-    stock: '' as number | string, purchaseCost: '' as number | string, extraCost: '' as number | string, wasteRate: '' as number | string, targetMargin: 35 as number | string, salePrice: '' as number | string
+    stock: '' as number | string, minStock: '' as number | string, purchaseCost: '' as number | string, extraCost: '' as number | string, wasteRate: '' as number | string, targetMargin: 35 as number | string, salePrice: '' as number | string
   });
 
   const getExchangeRate = (pCurrency?: string) => {
@@ -112,17 +114,17 @@ export default function Products() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!workspaceId) return;
     
     const id = editId || crypto.randomUUID();
-    const docRef = doc(db, `workspaces/${user.uid}/products/${id}`);
+    const docRef = doc(db, `workspaces/${workspaceId}/products/${id}`);
     
     let finalUnit = formData.unit;
     if (finalUnit === 'otra') {
       finalUnit = customUnit.trim() || 'Unidades';
       if (!allUnits.includes(finalUnit)) {
         try {
-          const wsRef = doc(db, 'workspaces', user.uid);
+          const wsRef = doc(db, 'workspaces', workspaceId);
           await updateDoc(wsRef, {
             'settings.customUnits': [...(settings?.customUnits || []), finalUnit],
             updatedAt: serverTimestamp()
@@ -163,32 +165,36 @@ export default function Products() {
       if (!editId) {
         await setDoc(docRef, {
           ...payload,
-          workspaceId: user.uid,
+          workspaceId: workspaceId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+        await logAction('create', 'product', `Creó el producto ${payload.name}`, id);
       } else {
         await updateDoc(docRef, {
           ...payload,
           updatedAt: serverTimestamp()
         });
+        await logAction('update', 'product', `Actualizó el producto ${payload.name}`, id);
       }
       toast.success(editId ? 'Producto actualizado' : 'Producto creado');
       setIsDialogOpen(false);
     } catch (err) {
-      handleFirestoreError(err, editId ? OperationType.UPDATE : OperationType.CREATE, `workspaces/${user.uid}/products/${id}`);
+      handleFirestoreError(err, editId ? OperationType.UPDATE : OperationType.CREATE, `workspaces/${workspaceId}/products/${id}`);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!user?.uid) return;
+    if (!workspaceId) return;
+    const p = products.find(prod => prod.id === id);
 
     try {
-      await deleteDoc(doc(db, `workspaces/${user.uid}/products/${id}`));
+      await deleteDoc(doc(db, `workspaces/${workspaceId}/products/${id}`));
+      if (p) await logAction('delete', 'product', `Eliminó el producto ${p.name}`, id);
       toast.success('Producto eliminado');
       setIsDialogOpen(false);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `workspaces/${user.uid}/products/${id}`);
+      handleFirestoreError(err, OperationType.DELETE, `workspaces/${workspaceId}/products/${id}`);
     }
   };
 
@@ -203,10 +209,10 @@ export default function Products() {
           <p className="text-muted-foreground mt-2">Administra tu inventario de materias primas y procesados.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => handleOpenDialog()} className="bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-orange-500 transition-all">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo producto
-          </Button>
+            <Button onClick={() => handleOpenDialog()} className="bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-orange-500 transition-all">
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo producto
+            </Button>
         </div>
       </div>
 
@@ -246,7 +252,7 @@ export default function Products() {
               <TableHead className="text-muted-foreground">Tipo</TableHead>
               <TableHead className="text-muted-foreground">Stock</TableHead>
               <TableHead className="text-muted-foreground">Costo (Base)</TableHead>
-              <TableHead className="text-muted-foreground">Precio Sug.</TableHead>
+              <TableHead className="text-muted-foreground">Valor Stock</TableHead>
               <TableHead className="text-muted-foreground">Precio Venta</TableHead>
               <TableHead className="text-muted-foreground">Margen</TableHead>
               <TableHead className="w-[80px]"></TableHead>
@@ -282,7 +288,7 @@ export default function Products() {
                         <div className="text-[10px] text-zinc-500 font-medium">Orig: {usdFormatter.format(p.purchaseCost)}</div>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{formatter.format(getSuggestedPrice(p))}</TableCell>
+                    <TableCell className="text-zinc-300 font-medium">{formatter.format((Number(p.stock) || 0) * getUnitCost(p))}</TableCell>
                     <TableCell className="font-medium text-white">{p.salePrice > 0 ? formatter.format(p.salePrice) : '-'}</TableCell>
                     <TableCell>
                       {isNaN(margin) ? '-' : (
@@ -292,9 +298,9 @@ export default function Products() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(p)} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-white">
-                        Editar
-                      </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(p)} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-white">
+                          Editar
+                        </Button>
                     </TableCell>
                   </TableRow>
                 );

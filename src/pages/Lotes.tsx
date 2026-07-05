@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useWorkspaceData, useAuth, Batch } from '@/src/lib/hooks';
-import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
+import { useWorkspaceData, useAuth, Batch, useAuditLog } from '../lib/hooks';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { Plus, Search, Trash2, CalendarCheck2, Beaker, MapPin, Edit3, Printer, Download, TestTube2 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -16,7 +16,9 @@ import { toast } from 'sonner';
 
 export default function Lotes() {
   const { user } = useAuth();
-  const { batches, products, suppliers, settings, loading } = useWorkspaceData(user?.uid);
+  const workspaceId = user?.uid;
+  const { batches, products, suppliers, settings, loading } = useWorkspaceData(workspaceId);
+  const { logAction } = useAuditLog();
   const [search, setSearch] = useState('');
   
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -89,17 +91,17 @@ export default function Lotes() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.productId || !formData.lotNumber || !formData.expirationDate || !user?.uid) {
+    if (!formData.productId || !formData.lotNumber || !formData.expirationDate || !workspaceId) {
       return toast.error("El producto, código de lote y fecha de vencimiento son obligatorios.");
     }
 
     try {
       const isNew = !editId;
       const id = editId || crypto.randomUUID();
-      const ref = doc(collection(db, `workspaces/${user.uid}/batches`), id);
+      const ref = doc(collection(db, `workspaces/${workspaceId}/batches`), id);
       
       const payload: any = {
-        workspaceId: user.uid,
+        workspaceId: workspaceId,
         productId: formData.productId,
         lotNumber: formData.lotNumber,
         manufacturingDate: formData.manufacturingDate,
@@ -119,21 +121,33 @@ export default function Lotes() {
       }
 
       await setDoc(ref, payload, { merge: true });
+
+      const prod = products.find(p => p.id === formData.productId);
+      if (isNew) {
+        await logAction('create', 'lote', `Creó lote ${formData.lotNumber} para ${prod?.name || 'producto'}`, id);
+      } else {
+        await logAction('update', 'lote', `Actualizó lote ${formData.lotNumber} para ${prod?.name || 'producto'}`, id);
+      }
+
       toast.success(`Lote ${isNew ? 'creado' : 'actualizado'} exitosamente.`);
       setIsDialogOpen(false);
     } catch(err) {
-      handleFirestoreError(err, editId ? OperationType.UPDATE : OperationType.CREATE, `workspaces/${user?.uid}/batches`);
+      handleFirestoreError(err, editId ? OperationType.UPDATE : OperationType.CREATE, `workspaces/${workspaceId}/batches`);
     }
   };
 
   const handleDelete = async () => {
-    if (!deleteConfirmId || !user?.uid) return;
+    if (!deleteConfirmId || !workspaceId) return;
     try {
-      await deleteDoc(doc(db, `workspaces/${user.uid}/batches/${deleteConfirmId}`));
+      const b = batches.find(x => x.id === deleteConfirmId);
+      await deleteDoc(doc(db, `workspaces/${workspaceId}/batches/${deleteConfirmId}`));
+      if (b) {
+         await logAction('delete', 'lote', `Eliminó lote ${b.lotNumber}`, deleteConfirmId);
+      }
       toast.success('Lote eliminado exitosamente.');
       setDeleteConfirmId(null);
     } catch(err) {
-      handleFirestoreError(err, OperationType.DELETE, `workspaces/${user.uid}/batches/${deleteConfirmId}`);
+      handleFirestoreError(err, OperationType.DELETE, `workspaces/${workspaceId}/batches/${deleteConfirmId}`);
     }
   };
 

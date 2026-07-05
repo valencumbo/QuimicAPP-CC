@@ -112,7 +112,9 @@ export default function Dashboard() {
             <Coins className="h-5 w-5 text-emerald-400 shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl lg:text-3xl font-bold text-emerald-400">{formatter.format(inventoryValue)}</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-emerald-400 break-all leading-tight">
+              {formatter.format(inventoryValue)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">Capital inmovilizado</p>
           </CardContent>
         </Card>
@@ -122,7 +124,9 @@ export default function Dashboard() {
             <TrendingUp className="h-5 w-5 text-primary shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl lg:text-3xl font-bold text-primary">{formatter.format(currentMonthSales)}</div>
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary break-all leading-tight">
+              {formatter.format(currentMonthSales)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">Facturación actual</p>
           </CardContent>
         </Card>
@@ -299,7 +303,7 @@ export default function Dashboard() {
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <span className="text-sm font-medium text-white block">{prodName}</span>
-                            <span className="text-xs text-zinc-400">Lote: {b.batchNumber} • Quedan: {b.currentQuantity}</span>
+                            <span className="text-xs text-zinc-400">Lote: {b.lotNumber} • Quedan: {b.currentQuantity}</span>
                           </div>
                           <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                             isCritical ? 'bg-red-500/10 text-red-400' : 'bg-orange-500/10 text-orange-400'

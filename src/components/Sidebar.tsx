@@ -1,9 +1,9 @@
 import { useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { Home, Beaker, ShoppingCart, TestTube, Users, Bell, Settings, Receipt, Truck, Archive, FileSpreadsheet, FlaskConical, LayoutDashboard, Factory, Droplets } from 'lucide-react';
+import { Home, Beaker, ShoppingCart, TestTube, Users, Bell, Settings, Receipt, Truck, Archive, FileSpreadsheet, FlaskConical, LayoutDashboard, Factory, Droplets, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/src/lib/hooks';
-import { auth } from '@/src/lib/firebase';
+import { useAuth } from '../lib/hooks';
+import { auth } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { gsap } from 'gsap';
@@ -273,6 +273,7 @@ export default function Sidebar() {
       items: [
         { name: 'Reportes y Exp.', path: '/reports', icon: FileSpreadsheet },
         { name: 'Recordatorios', path: '/reminders', icon: Bell },
+        { name: 'Auditoría', path: '/audit', icon: ShieldAlert },
         { name: 'Configuración', path: '/settings', icon: Settings },
       ]
     }

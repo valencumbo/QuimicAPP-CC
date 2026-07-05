@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useWorkspaceData, useAuth } from '@/src/lib/hooks';
-import { auth } from '@/src/lib/firebase';
-import { db, handleFirestoreError, OperationType } from '@/src/lib/firebase';
+import { useWorkspaceData, useAuth, useAuditLog } from '../lib/hooks';
+import { auth } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { Plus, Trash2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,9 @@ import { toast } from 'sonner';
 
 export default function Purchases() {
   const { user } = useAuth();
-  const { settings, products, purchases } = useWorkspaceData(user?.uid);
+  const workspaceId = user?.uid;
+  const { settings, products, purchases } = useWorkspaceData(workspaceId);
+  const { logAction } = useAuditLog();
   
   const [deleteConfirm, setDeleteConfirm] = useState<{id: string, productId: string, quantity: number} | null>(null);
 
@@ -82,7 +84,7 @@ export default function Purchases() {
   };
 
   const handleSaveInvoice = async () => {
-    if (!user?.uid || invoiceItems.length === 0) return;
+    if (!workspaceId || invoiceItems.length === 0) return;
     
     try {
       const batch = writeBatch(db);
@@ -96,7 +98,7 @@ export default function Purchases() {
         if (!product) return;
         
         const purchaseId = crypto.randomUUID();
-        const purchaseRef = doc(db, `workspaces/${user.uid}/purchases/${purchaseId}`);
+        const purchaseRef = doc(db, `workspaces/${workspaceId}/purchases/${purchaseId}`);
         
         batch.set(purchaseRef, {
           productId: item.productId,
@@ -111,7 +113,7 @@ export default function Purchases() {
           lotNumber: item.lotNumber,
           expirationDate: item.expirationDate,
           location: item.location,
-          workspaceId: user.uid,
+          workspaceId: workspaceId,
           createdAt: serverTimestamp()
         });
         
@@ -126,7 +128,7 @@ export default function Purchases() {
            rateToProductCurrency = 1 / Math.max(settings?.usdRate || 1, 0.01);
         }
 
-        const prodRef = doc(db, `workspaces/${user.uid}/products/${product.id}`);
+        const prodRef = doc(db, `workspaces/${workspaceId}/products/${product.id}`);
         const currentStock = product.stock || 0;
         const currentCost = product.purchaseCost || 0;
         const newStock = currentStock + qty;
@@ -149,9 +151,9 @@ export default function Purchases() {
 
         if (item.isBatchEntry) {
           const lotId = crypto.randomUUID();
-          const lotRef = doc(db, `workspaces/${user.uid}/batches/${lotId}`);
+          const lotRef = doc(db, `workspaces/${workspaceId}/batches/${lotId}`);
           batch.set(lotRef, {
-            workspaceId: user.uid,
+            workspaceId: workspaceId,
             productId: product.id,
             lotNumber: item.lotNumber,
             expirationDate: item.expirationDate,
@@ -169,26 +171,28 @@ export default function Purchases() {
 
       await batch.commit();
 
+      await logAction('create', 'purchase', `Registró ingreso de ${invoiceItems.length} items`);
+
       toast.success('Factura registrada y stocks actualizados');
       setInvoiceItems([]);
       setInvoiceSupplier('');
       setInvoiceNote('');
     } catch (err) {
-      handleFirestoreError(err, OperationType.CREATE, `workspaces/${user.uid}/purchases/invoice`);
+      handleFirestoreError(err, OperationType.CREATE, `workspaces/${workspaceId}/purchases/invoice`);
     }
   };
 
   const handleDelete = async (id: string, productId: string, quantity: number) => {
-    if (!user?.uid) return;
+    if (!workspaceId) return;
 
     try {
       const batch = writeBatch(db);
       
-      batch.delete(doc(db, `workspaces/${user.uid}/purchases/${id}`));
+      batch.delete(doc(db, `workspaces/${workspaceId}/purchases/${id}`));
 
       const product = products.find(p => p.id === productId);
       if (product) {
-        const prodRef = doc(db, `workspaces/${user.uid}/products/${product.id}`);
+        const prodRef = doc(db, `workspaces/${workspaceId}/products/${product.id}`);
         batch.update(prodRef, {
           stock: Math.max(0, (product.stock || 0) - quantity),
           updatedAt: serverTimestamp()
@@ -196,9 +200,12 @@ export default function Purchases() {
       }
 
       await batch.commit();
+      
+      await logAction('delete', 'purchase', `Revirtió ingreso del producto ${product?.name || productId}`, id);
+      
       toast.success('Compra revertida y stock ajustado');
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `workspaces/${user.uid}/purchases/${id}`);
+      handleFirestoreError(err, OperationType.DELETE, `workspaces/${workspaceId}/purchases/${id}`);
     }
   };
 
