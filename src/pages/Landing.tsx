@@ -141,9 +141,12 @@ export default function Landing() {
                    Cálculo de márgenes y exportación de reportes
                  </li>
                </ul>
-               <button onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })} className="w-full">
-                 <Button className="w-full h-14 text-base font-bold rounded-xl bg-primary hover:bg-orange-500 text-white shadow-md">Solicitar alta de cuenta</Button>
-               </button>
+               <Button
+                 onClick={() => document.getElementById('contacto')?.scrollIntoView({ behavior: 'smooth' })}
+                 className="w-full h-14 text-base font-bold rounded-xl bg-primary hover:bg-orange-500 text-white shadow-md"
+               >
+                 Solicitar alta de cuenta
+               </Button>
             </ScrollReveal>
           </div>
         </section>

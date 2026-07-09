@@ -3,7 +3,7 @@ import { useWorkspaceData, useAuth, useAuditLog } from '../lib/hooks';
 import { auth } from '../lib/firebase';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Search, Trash2, Beaker } from 'lucide-react';
+import { Plus, Search, Trash2, Beaker, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,21 @@ export default function Products() {
   const { logAction } = useAuditLog();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -66,6 +81,54 @@ export default function Products() {
                           p.sku.toLowerCase().includes(search.toLowerCase());
     const matchesType = filterType === 'all' || p.type === filterType;
     return matchesSearch && matchesType;
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (!sortField) return 0;
+    
+    let valA: any = 0;
+    let valB: any = 0;
+
+    switch (sortField) {
+      case 'name':
+        valA = a.name.toLowerCase();
+        valB = b.name.toLowerCase();
+        break;
+      case 'stock':
+        valA = Number(a.stock) || 0;
+        valB = Number(b.stock) || 0;
+        break;
+      case 'salePrice':
+        valA = Number(a.salePrice) || 0;
+        valB = Number(b.salePrice) || 0;
+        break;
+      case 'unitCost':
+        valA = getUnitCost(a);
+        valB = getUnitCost(b);
+        break;
+      case 'stockValue':
+        valA = (Number(a.stock) || 0) * getUnitCost(a);
+        valB = (Number(b.stock) || 0) * getUnitCost(b);
+        break;
+      case 'margin': {
+        const marginA = getMargin(a);
+        const marginB = getMargin(b);
+        const isA_NaN = isNaN(marginA);
+        const isB_NaN = isNaN(marginB);
+        if (isA_NaN && isB_NaN) return 0;
+        if (isA_NaN) return 1; // Put NaN at the end
+        if (isB_NaN) return -1;
+        valA = marginA;
+        valB = marginB;
+        break;
+      }
+      default:
+        return 0;
+    }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const handleOpenDialog = (p?: any) => {
@@ -248,25 +311,120 @@ export default function Products() {
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-muted-foreground">Producto</TableHead>
-              <TableHead className="text-muted-foreground">Tipo</TableHead>
-              <TableHead className="text-muted-foreground">Stock</TableHead>
-              <TableHead className="text-muted-foreground">Costo (Base)</TableHead>
-              <TableHead className="text-muted-foreground">Valor Stock</TableHead>
-              <TableHead className="text-muted-foreground">Precio Venta</TableHead>
-              <TableHead className="text-muted-foreground">Margen</TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Producto</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'name' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('stock')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Stock</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'stock' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('salePrice')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Precio Venta</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'salePrice' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('unitCost')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Costo (Base)</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'unitCost' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('stockValue')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Valor Stock</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'stockValue' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-muted-foreground cursor-pointer hover:text-white select-none transition-colors"
+                onClick={() => handleSort('margin')}
+              >
+                <div className="flex items-center gap-1.5 py-1">
+                  <span>Margen</span>
+                  <span className="shrink-0 text-zinc-500">
+                    {sortField !== 'margin' ? (
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                    ) : sortDirection === 'asc' ? (
+                      <ArrowUp className="w-3.5 h-3.5 text-primary" />
+                    ) : (
+                      <ArrowDown className="w-3.5 h-3.5 text-primary" />
+                    )}
+                  </span>
+                </div>
+              </TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.length === 0 ? (
+            {sortedProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   No hay productos registrados con esos filtros.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map(p => {
+              sortedProducts.map(p => {
                 const margin = getMargin(p);
                 const marginClass = margin < (p.targetMargin - 5) ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
                 
@@ -276,12 +434,8 @@ export default function Products() {
                       <div className="font-medium text-zinc-100">{p.name}</div>
                       <div className="text-xs text-muted-foreground">{p.sku || 'Sin SKU'} • {p.supplier || 'Sin proveedor'}</div>
                     </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-300 text-[10px] uppercase font-bold tracking-wider">
-                        {p.type === 'raw' ? 'M. Prima' : p.type === 'processed' ? 'Procesado' : 'Reventa'}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-zinc-200">{p.stock} {p.unit}</TableCell>
+                    <TableCell className="font-medium text-white">{p.salePrice > 0 ? formatter.format(p.salePrice) : '-'}</TableCell>
                     <TableCell>
                       <div className="text-zinc-200">{formatter.format(getUnitCost(p))}</div>
                       {p.currency === 'USD' && settings?.currency === 'ARS' && (
@@ -289,7 +443,6 @@ export default function Products() {
                       )}
                     </TableCell>
                     <TableCell className="text-zinc-300 font-medium">{formatter.format((Number(p.stock) || 0) * getUnitCost(p))}</TableCell>
-                    <TableCell className="font-medium text-white">{p.salePrice > 0 ? formatter.format(p.salePrice) : '-'}</TableCell>
                     <TableCell>
                       {isNaN(margin) ? '-' : (
                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${marginClass}`}>

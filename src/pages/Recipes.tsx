@@ -26,6 +26,7 @@ export default function Recipes() {
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [components, setComponents] = useState<{productId: string, quantity: number}[]>([]);
   const [currentMaterial, setCurrentMaterial] = useState('');
+
   const [currentQuantity, setCurrentQuantity] = useState<number | ''>('');
   const [yieldQty, setYieldQty] = useState<number | ''>(1);
   const [processCost, setProcessCost] = useState<number | ''>(0);
