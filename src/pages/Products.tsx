@@ -77,8 +77,10 @@ export default function Products() {
   const usdFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
-                          p.sku.toLowerCase().includes(search.toLowerCase());
+    const nameStr = p.name || '';
+    const skuStr = p.sku || '';
+    const matchesSearch = nameStr.toLowerCase().includes(search.toLowerCase()) || 
+                          skuStr.toLowerCase().includes(search.toLowerCase());
     const matchesType = filterType === 'all' || p.type === filterType;
     return matchesSearch && matchesType;
   });
@@ -91,8 +93,8 @@ export default function Products() {
 
     switch (sortField) {
       case 'name':
-        valA = a.name.toLowerCase();
-        valB = b.name.toLowerCase();
+        valA = (a.name || '').toLowerCase();
+        valB = (b.name || '').toLowerCase();
         break;
       case 'stock':
         valA = Number(a.stock) || 0;
@@ -618,7 +620,7 @@ export default function Products() {
                 <div className="mt-4">
                   <span className="block text-xs font-semibold text-muted-foreground uppercase tracking-widest">Margen Actual</span>
                   <strong className="text-xl text-white">
-                    {formData.salePrice ? `${getMargin(formData).toFixed(1)}%` : '-'}
+                    {formData.salePrice && !isNaN(getMargin(formData)) ? `${getMargin(formData).toFixed(1)}%` : '-'}
                   </strong>
                 </div>
              </div>
