@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -40,6 +41,9 @@ export default function Products() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const [searchSupplier, setSearchSupplier] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
+  const [searchUnit, setSearchUnit] = useState('');
   const [formData, setFormData] = useState({
     name: '', sku: '', type: 'resale', unit: 'un', supplier: '', category: '', currency: 'ARS',
     stock: '' as number | string, minStock: '' as number | string, purchaseCost: '' as number | string, extraCost: '' as number | string, wasteRate: '' as number | string, targetMargin: 35 as number | string, salePrice: '' as number | string
@@ -499,7 +503,7 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Unidad de medida</Label>
-                  <Select value={allUnits.includes(formData.unit) ? formData.unit : (formData.unit ? 'otra' : 'Unidades')} onValueChange={val => {
+                  <Select value={allUnits.includes(formData.unit) ? formData.unit : (formData.unit ? 'otra' : 'Unidades')} onOpenChange={(o) => { if(!o) setSearchUnit(''); }} onValueChange={val => {
                     setFormData({...formData, unit: val});
                     if (val !== 'otra') setCustomUnit('');
                   }}>
@@ -507,7 +511,8 @@ export default function Products() {
                       <SelectValue placeholder="Seleccionar unidad..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {allUnits.map(u => (
+                      <SelectSearch value={searchUnit} onChange={setSearchUnit} />
+                      {allUnits.filter(u => u.toLowerCase().includes(searchUnit.toLowerCase())).map(u => (
                         <SelectItem key={u} value={u}>{u}</SelectItem>
                       ))}
                       <SelectItem value="otra">Otra...</SelectItem>
@@ -519,13 +524,14 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Proveedor</Label>
-                  <Select value={formData.supplier} onValueChange={val => setFormData({...formData, supplier: val})}>
+                  <Select value={formData.supplier} onOpenChange={(o) => { if(!o) setSearchSupplier(''); }} onValueChange={val => setFormData({...formData, supplier: val})}>
                     <SelectTrigger className="bg-input">
                       <SelectValue placeholder="Seleccionar proveedor..." />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectSearch value={searchSupplier} onChange={setSearchSupplier} />
                       <SelectItem value="Sin proveedor especificado">Sin proveedor especificado</SelectItem>
-                      {suppliers.map(s => (
+                      {suppliers.filter(s => s.name.toLowerCase().includes(searchSupplier.toLowerCase())).map(s => (
                         <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -533,7 +539,7 @@ export default function Products() {
                 </div>
                 <div className="space-y-2">
                   <Label>Categoría</Label>
-                  <Select value={formData.category === 'Sin categoría' ? 'Sin categoría' : (allCategories.includes(formData.category) ? formData.category : (formData.category ? 'otra' : 'Sin categoría'))} onValueChange={val => {
+                  <Select value={formData.category === 'Sin categoría' ? 'Sin categoría' : (allCategories.includes(formData.category) ? formData.category : (formData.category ? 'otra' : 'Sin categoría'))} onOpenChange={(o) => { if(!o) setSearchCategory(''); }} onValueChange={val => {
                     setFormData({...formData, category: val});
                     if (val !== 'otra') setCustomCategory('');
                   }}>
@@ -541,8 +547,9 @@ export default function Products() {
                       <SelectValue placeholder="Seleccionar categoría..." />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectSearch value={searchCategory} onChange={setSearchCategory} />
                       <SelectItem value="Sin categoría">Sin categoría</SelectItem>
-                      {allCategories.map(c => (
+                      {allCategories.filter(c => c.toLowerCase().includes(searchCategory.toLowerCase())).map(c => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                       <SelectItem value="otra">Otra...</SelectItem>

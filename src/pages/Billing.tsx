@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -25,6 +26,7 @@ export default function Billing() {
   const [clientName, setClientName] = useState('');
   const [currency, setCurrency] = useState('ARS');
   const [items, setItems] = useState<any[]>([]);
+  const [searchItem, setSearchItem] = useState('');
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -338,7 +340,7 @@ export default function Billing() {
                            </Select>
                         </td>
                         <td className="px-4 py-2">
-                           <Select value={it.itemId || undefined} onValueChange={v => updateItem(idx, 'itemId', v)}>
+                           <Select value={it.itemId || undefined} onValueChange={v => updateItem(idx, 'itemId', v)} onOpenChange={(o) => { if(!o) setSearchItem(''); }}>
                               <SelectTrigger className="w-full border-border bg-input text-white text-sm">
                                 <SelectValue placeholder="Seleccionar...">
                                   {it.itemId 
@@ -349,9 +351,10 @@ export default function Billing() {
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectSearch value={searchItem} onChange={setSearchItem} />
                                 {it.isRecipe ? 
-                                    recipes.map((r: any) => <SelectItem key={r.id} value={r.id}>{products.find(p => p.id === r.productId)?.name || 'Receta'}</SelectItem>) :
-                                    products.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
+                                    recipes.filter((r: any) => (products.find(p => p.id === r.productId)?.name || '').toLowerCase().includes(searchItem.toLowerCase())).map((r: any) => <SelectItem key={r.id} value={r.id}>{products.find(p => p.id === r.productId)?.name || 'Receta'}</SelectItem>) :
+                                    products.filter((p: any) => p.name.toLowerCase().includes(searchItem.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchItem.toLowerCase()))).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
                                 }
                               </SelectContent>
                            </Select>

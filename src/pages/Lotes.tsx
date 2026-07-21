@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
@@ -26,6 +27,8 @@ export default function Lotes() {
   const [printBatch, setPrintBatch] = useState<Batch | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
+  const [searchProduct, setSearchProduct] = useState('');
+  const [searchSupplier, setSearchSupplier] = useState('');
   const [formData, setFormData] = useState({
     productId: '',
     lotNumber: '',
@@ -264,14 +267,15 @@ export default function Lotes() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-2">
                 <Label>Producto Relacionado</Label>
-                <Select required value={formData.productId} onValueChange={v => setFormData({...formData, productId: v})}>
+                <Select required value={formData.productId} onValueChange={v => setFormData({...formData, productId: v})} onOpenChange={(o) => { if(!o) setSearchProduct(''); }}>
                   <SelectTrigger className="bg-input border-border">
                     <SelectValue placeholder="Seleccionar producto...">
                       {products.find(p => p.id === formData.productId)?.name || 'Seleccionar producto...'}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map(p => (
+                    <SelectSearch value={searchProduct} onChange={setSearchProduct} placeholder="Buscar producto..." />
+                    {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
@@ -320,15 +324,16 @@ export default function Lotes() {
               </div>
               <div className="col-span-2 space-y-2">
                 <Label>Proveedor Origen (Opcional)</Label>
-                <Select value={formData.supplierId} onValueChange={v => setFormData({...formData, supplierId: v})}>
+                <Select value={formData.supplierId} onValueChange={v => setFormData({...formData, supplierId: v})} onOpenChange={(o) => { if(!o) setSearchSupplier(''); }}>
                   <SelectTrigger className="bg-input border-border">
                     <SelectValue placeholder="Sin proveedor especificado">
                       {formData.supplierId === 'none' ? 'Sin proveedor especificado' : suppliers.find(s => s.id === formData.supplierId)?.name || 'Sin proveedor especificado'}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectSearch value={searchSupplier} onChange={setSearchSupplier} placeholder="Buscar proveedor..." />
                     <SelectItem value="none">Sin proveedor especificado</SelectItem>
-                    {suppliers.map(s => (
+                    {suppliers.filter(s => s.name.toLowerCase().includes(searchSupplier.toLowerCase())).map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>

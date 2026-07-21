@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
@@ -39,6 +40,8 @@ export default function Suppliers() {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [compareA, setCompareA] = useState<string>('');
   const [compareB, setCompareB] = useState<string>('');
+  const [searchA, setSearchA] = useState('');
+  const [searchB, setSearchB] = useState('');
 
   const [formData, setFormData] = useState({
     name: '', contact: '', paymentTerms: '', currency: 'ARS',
@@ -296,27 +299,33 @@ export default function Suppliers() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-zinc-300">Proveedor A</Label>
-              <Select value={compareA} onValueChange={setCompareA}>
+              <Select value={compareA} onValueChange={setCompareA} onOpenChange={(o) => { if(!o) setSearchA(''); }}>
                 <SelectTrigger className="bg-input border-border text-white">
                   <SelectValue placeholder="Seleccionar">
                     {suppliers.find(s => s.id === compareA)?.name || 'Seleccionar'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  <SelectSearch value={searchA} onChange={setSearchA} />
+                  {suppliers.filter(s => s.name.toLowerCase().includes(searchA.toLowerCase())).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-zinc-300">Proveedor B</Label>
-              <Select value={compareB} onValueChange={setCompareB}>
+              <Select value={compareB} onValueChange={setCompareB} onOpenChange={(o) => { if(!o) setSearchB(''); }}>
                 <SelectTrigger className="bg-input border-border text-white">
                   <SelectValue placeholder="Seleccionar">
                     {suppliers.find(s => s.id === compareB)?.name || 'Seleccionar'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  <SelectSearch value={searchB} onChange={setSearchB} />
+                  {suppliers.filter(s => s.name.toLowerCase().includes(searchB.toLowerCase())).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

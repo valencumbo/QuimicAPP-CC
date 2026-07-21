@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
@@ -16,7 +17,7 @@ import { toast } from 'sonner';
 export default function Purchases() {
   const { user } = useAuth();
   const workspaceId = user?.uid;
-  const { settings, products, purchases } = useWorkspaceData(workspaceId);
+  const { settings, products, purchases, suppliers } = useWorkspaceData(workspaceId);
   const { logAction } = useAuditLog();
   
   const [deleteConfirm, setDeleteConfirm] = useState<{id: string, productId: string, quantity: number} | null>(null);
@@ -27,6 +28,7 @@ export default function Purchases() {
   
   const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
 
+  const [searchProduct, setSearchProduct] = useState('');
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '' as number | string,
@@ -233,7 +235,10 @@ export default function Purchases() {
                </div>
                <div className="space-y-2">
                  <Label className="text-zinc-300">Proveedor</Label>
-                 <Input type="text" value={invoiceSupplier} onChange={e => setInvoiceSupplier(e.target.value)} placeholder="Opcional" className="bg-input border-border" />
+                 <Input type="text" list="suppliers-list" value={invoiceSupplier} onChange={e => setInvoiceSupplier(e.target.value)} placeholder="Opcional" className="bg-input border-border" />
+                 <datalist id="suppliers-list">
+                    {suppliers.map(s => <option key={s.id} value={s.name} />)}
+                 </datalist>
                </div>
                <div className="space-y-2">
                  <Label className="text-zinc-300">Nota / Nro. Factura</Label>
@@ -245,17 +250,18 @@ export default function Purchases() {
                <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-2">Agregar Ítem</h3>
                <div className="space-y-2">
                  <Label className="text-zinc-300">Producto</Label>
-                 <Select value={formData.productId} onValueChange={v => {
+                 <Select value={formData.productId} onOpenChange={(o) => { if(!o) setSearchProduct(''); }} onValueChange={v => {
                     const prod = products.find(p => p.id === v);
                     setFormData({...formData, productId: v, currency: prod?.currency || settings?.currency || 'ARS'})
                  }}>
                     <SelectTrigger className="bg-input border-border text-white">
                       <SelectValue placeholder="Selecciona un producto...">
-                         {selectedProduct ? `${selectedProduct.name} (${selectedProduct.unit})` : 'Selecciona un producto...'}
+                         {products.find(p => p.id === formData.productId) ? `${products.find(p => p.id === formData.productId)?.name} (${products.find(p => p.id === formData.productId)?.unit})` : 'Selecciona un producto...'}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map(p => (
+                      <SelectSearch value={searchProduct} onChange={setSearchProduct} placeholder="Buscar producto..." />
+                      {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} ({p.unit})</SelectItem>
                       ))}
                     </SelectContent>

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -26,6 +27,7 @@ export default function Recipes() {
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [components, setComponents] = useState<{productId: string, quantity: number}[]>([]);
   const [currentMaterial, setCurrentMaterial] = useState('');
+  const [searchMaterial, setSearchMaterial] = useState('');
 
   const [currentQuantity, setCurrentQuantity] = useState<number | ''>('');
   const [yieldQty, setYieldQty] = useState<number | ''>(1);
@@ -286,14 +288,15 @@ export default function Recipes() {
               <div className="grid grid-cols-[1fr_120px_auto] gap-3">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Insumo</Label>
-                  <Select value={currentMaterial} onValueChange={setCurrentMaterial}>
+                  <Select value={currentMaterial} onValueChange={setCurrentMaterial} onOpenChange={(o) => { if(!o) setSearchMaterial(''); }}>
                     <SelectTrigger className="bg-input border-border">
                        <SelectValue placeholder="Seleccionar insumo">
                          {materials.find(m => m.id === currentMaterial)?.name || 'Seleccionar insumo'}
                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {materials.map(p => (
+                      <SelectSearch value={searchMaterial} onChange={setSearchMaterial} placeholder="Buscar insumo..." />
+                      {materials.filter(p => p.name.toLowerCase().includes(searchMaterial.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchMaterial.toLowerCase()))).map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} ({p.unit})</SelectItem>
                       ))}
                     </SelectContent>
