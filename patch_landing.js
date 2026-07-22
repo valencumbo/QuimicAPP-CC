@@ -1,14 +1,11 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { LogIn, Image as ImageIcon, MessageCircle, BarChart3, Archive, ArrowRight, ShieldCheck, Zap, TestTube, Receipt } from 'lucide-react';
+import { LogIn, Image as ImageIcon, MessageCircle, BarChart3, Archive, ArrowRight, ShieldCheck, Zap, TestTube } from 'lucide-react';
 import ScrollReveal from '@/src/components/ScrollReveal';
 
 import ShinyText from '@/src/components/ShinyText';
 
 export default function Landing() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/30 selection:text-primary">
       <header className="py-4 px-6 md:px-8 flex justify-between items-center bg-card/80 backdrop-blur-md sticky top-0 z-50 border-b border-border">
@@ -80,8 +77,12 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               {/* Feature 1 */}
               <ScrollReveal delay={0.1} className="bg-background rounded-3xl overflow-hidden border border-border flex flex-col group transition-all hover:border-zinc-700 shadow-md">
-                 <div className="h-48 bg-muted/30 relative border-b border-border">
-                    <img src="/captura-formulas.png" alt="Ingeniería de Fórmulas" className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => setSelectedImage('/captura-formulas.png')} />
+                 <div className="h-48 bg-muted/30 relative border-b border-border overflow-hidden">
+                    <img src="/captura-formulas.png" alt="Ingeniería de Fórmulas" className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0">
+                       <span className="text-xs text-zinc-500 font-medium bg-black/50 px-2 py-1 rounded">captura-formulas.png</span>
+                    </div>
+                 </div>
                  </div>
                  <div className="p-8 md:p-10 flex flex-col items-center text-center flex-1">
               
@@ -95,16 +96,19 @@ export default function Landing() {
 
               {/* Feature 2 */}
               <ScrollReveal delay={0.2} className="bg-background rounded-3xl overflow-hidden border border-border flex flex-col group transition-all hover:border-zinc-700 shadow-md">
-                 <div className="h-48 bg-muted/30 relative border-b border-border">
-                    {/* Sugerencia: Captura de la sección de Lotes o Compras */}
-                    <img src="/captura-reportes.png" alt="Reportes y Métricas" className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => setSelectedImage('/captura-reportes.png')} />
+                 <div className="h-48 bg-muted/30 relative border-b border-border overflow-hidden">
+                    <img src="/captura-reportes.png" alt="Reportes y Métricas" className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0">
+                       <span className="text-xs text-zinc-500 font-medium bg-black/50 px-2 py-1 rounded">captura-reportes.png</span>
+                    </div>
+                 </div>
                  </div>
                  <div className="p-8 md:p-10 flex flex-col items-center text-center flex-1">
               
                  <div className="w-16 h-16 bg-muted/50 rounded-2xl border border-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                    <BarChart3 className="w-8 h-8 text-emerald-500" />
                  </div>
-                 <h3 className="text-2xl font-bold mb-4 text-white">Reportes y Métricas</h3>
+                 <h3 className="text-2xl font-bold mb-4 text-white">Facturación y Ventas</h3>
                  <p className="text-zinc-400 leading-relaxed text-balance">Visualiza la evolución de tus ventas, costos y márgenes de ganancia. Toma decisiones basadas en datos reales y precisos de tu operación diaria.</p>
                  </div>
               </ScrollReveal>
@@ -112,27 +116,21 @@ export default function Landing() {
               {/* Feature 3 */}
               <ScrollReveal delay={0.3} yOffset={40} className="bg-background rounded-3xl p-8 md:p-12 border border-border flex flex-col items-center text-center group transition-all hover:border-zinc-700 shadow-md md:col-span-2 md:flex-row md:text-left gap-8">
                  <div className="w-full md:w-1/2 h-48 md:h-64 bg-muted/30 rounded-2xl border border-border relative overflow-hidden shrink-0">
-                    <img src="/captura-facturacion.png" alt="Facturación y Ventas" className="w-full h-full object-cover object-left-top opacity-90 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => setSelectedImage('/captura-facturacion.png')} />
+                    <img src="/captura-facturacion.png" alt="Facturación y Ventas" className="w-full h-full object-cover object-top opacity-90 group-hover:opacity-100 transition-opacity" />
                  </div>
-                 <div className="flex-1 flex flex-col justify-center">
+                 <div className="flex-1">
                    <div className="w-16 h-16 min-w-16 bg-muted/50 rounded-2xl border border-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                     <Receipt className="w-8 h-8 text-indigo-400" />
-                   </div>
-                   <h3 className="text-2xl font-bold mb-4 text-white">Facturación y Ventas</h3>
-                   <p className="text-zinc-400 leading-relaxed">Gestiona cotizaciones y ventas en múltiples monedas (ARS/USD). Descarga remitos en PDF, y mantén el control sobre tu facturación mensual de forma sencilla.</p>
+                   <Receipt className="w-8 h-8 text-indigo-400" />
+                 </div>
+                 <div>
+                   <h3 className="text-2xl font-bold mb-4 text-white">Reportes y Rentabilidad</h3>
+                   <p className="text-zinc-400 leading-relaxed max-w-3xl">Gestiona cotizaciones y ventas en múltiples monedas (ARS/USD). Descarga remitos en PDF, y mantén el control sobre tu facturación mensual de forma sencilla.</p>
                  </div>
               </ScrollReveal>
-            
             </div>
-            <ScrollReveal delay={0.4} yOffset={60} className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 relative group mt-16">
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
-              {/* Sugerencia: Captura del Dashboard principal o de la sección Fórmulas */}
-              <div className="bg-muted/30 flex items-center justify-center relative p-2 md:p-4">
-                 <img src="/captura-dashboard-1.png" alt="Dashboard Principal" className="w-full h-auto rounded-xl shadow-sm opacity-90 group-hover:opacity-100 transition-opacity duration-700 cursor-pointer" onClick={() => setSelectedImage('/captura-dashboard-1.png')} />
-              </div>
-            </ScrollReveal>
           </div>
         </section>
+
         {/* Pricing */}
         <section className="py-24 bg-background relative overflow-hidden" id="pricing">
           <div className="max-w-4xl mx-auto px-6 text-center">
@@ -150,7 +148,7 @@ export default function Landing() {
                </div>
                <h3 className="text-2xl font-bold mb-2 text-white">Licencia Profesional</h3>
                <div className="my-6">
-                 <span className="text-6xl font-extrabold tracking-tighter text-white font-mono">$20.000</span>
+                 <span className="text-6xl font-extrabold tracking-tighter text-white font-mono">$15.000</span>
                  <span className="text-zinc-500 font-medium ml-1">/ mes</span>
                </div>
                <ul className="space-y-4 text-left mb-10 w-fit mx-auto">
@@ -174,7 +172,19 @@ export default function Landing() {
                  Solicitar alta de cuenta
                </Button>
             </ScrollReveal>
-            
+            <ScrollReveal delay={0.4} yOffset={60} className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 relative group mt-16">
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
+              {/* Sugerencia: Captura del Dashboard principal o de la sección Fórmulas */}
+              <div className="aspect-[16/9] bg-muted/30 flex items-center justify-center relative">
+                 <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2070" alt="Dashboard Preview" className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                    <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-xl border border-white/10 text-white font-medium text-sm flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                       [Reemplazar con captura del Dashboard]
+                    </div>
+                 </div>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
@@ -192,7 +202,7 @@ export default function Landing() {
               </ScrollReveal>
               
               <ScrollReveal delay={0.2} yOffset={40} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                 <a href="https://wa.me/5491160159405" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                 <a href="https://wa.me/XXXXXXXXXX" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                    <Button size="lg" className="w-full h-14 px-8 text-base font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-900/20">
                      <MessageCircle className="w-5 h-5 mr-3" />
                      Contactar por WhatsApp
@@ -211,29 +221,6 @@ export default function Landing() {
       <footer className="py-8 text-center text-zinc-600 text-sm bg-background border-t border-border">
          <p>© {new Date().getFullYear()} QuimicAPP. Todos los derechos reservados.</p>
       </footer>
-
-      {/* Lightbox Modal */}
-      {selectedImage && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm cursor-pointer"
-          onClick={() => setSelectedImage(null)}
-        >
-          <img 
-            src={selectedImage} 
-            alt="Vista previa ampliada" 
-            className="max-w-full max-h-full rounded-lg shadow-2xl object-contain border border-white/10" 
-          />
-          <button 
-            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedImage(null);
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
     </div>
   );
 }
