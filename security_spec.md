@@ -1,23 +1,27 @@
-# The "Dirty Dozen" Payloads - Red Team Analysis
+# Security Spec
 
-## Data Invariants
-- `UserWorkspace`: A workspace cannot be created if the `ownerId` does not match the requester ID. A workspace can only be read/updated by the user possessing that `ownerId`.
-- `Product`: Products must belong to a valid workspace owned by the user. `stock`, `purchaseCost`, `salePrice` must be valid numbers (can be 0 or positive). `type` must be strictly `raw`, `resale`, or `processed`. 
-- `Purchase`: Must reference a valid `workspaceId` and `productId`. `quantity` and `unitCost` must be non-negative numbers.
-- `Recipe`: Must reference a valid `workspaceId` and `productId`. `components` array must contain at least one element and all properties must be strictly numbers where appropriate.
+## 1. Data Invariants
+- A user can only access their own workspace document and its subcollections where `workspaceId == request.auth.uid`.
+- User profiles (`users/{userId}`) can only be created/updated by the user themselves, and `emailVerified` should preferably be true.
+- All documents inside a workspace must contain `workspaceId == request.auth.uid`.
+- Strict schema validation for all entities (Product, Purchase, Recipe, Supplier, Reminder, Sale, AuditLog, User, UserWorkspace).
 
-## The 12 Payloads
-1. **Creation Spoofing:** Create a workspace where `ownerId` does not match `request.auth.uid`.
-2. **Ghost Admin Field:** Add `isAdmin: true` to a workspace update payload.
-3. **Array Flooding:** Create a recipe where the `components` array has 5000 items.
-4. **Data Type Poisoning (String in Number):** Set `stock` to `"99"` instead of `99` on a product.
-5. **Cross-Tenant Read (The Blanket Read Leak):** Try to read a product from another user's workspace.
-6. **Cross-Tenant Write:** Try to create a purchase in another user's workspace.
-7. **Deletion of Immutable Document:** Try to delete a workspace settings doc (should be allowed only by owner).
-8. **Invalid Entity State:** Set product `type` to `"magic"`.
-9. **Missing Required Fields on Create:** Create a Product missing the `createdAt` timestamp.
-10. **Timestamp Forgery on Update:** Pass `updatedAt == timestamp from yesterday` instead of `request.time`.
-11. **Size Limit Breaching in Strings:** Create a Product where `supplier` is 2000 characters long.
-12. **Malicious ID (Regex Break):** Create a document with an ID containing `../` or special characters.
+## 2. The "Dirty Dozen" Payloads
+1. Create a workspace for another user.
+2. Update another user's workspace.
+3. Add a ghost field (e.g. `isAdmin: true`) to a Product.
+4. Set `workspaceId` of a new Product to another user's UID.
+5. Create a Product without required fields.
+6. Bypass string limits on a Product name (e.g. 5000 chars).
+7. Read a workspace not belonging to the user.
+8. Delete a workspace not belonging to the user.
+9. Inject wrong types (e.g. `stock: "many"`) in a Product.
+10. Update a document with wrong `updatedAt` (not `request.time`).
+11. Update `createdAt` field on an existing document.
+12. Read from `users/{userId}` as another user.
 
-We will develop rules to prevent all of these.
+## 3. The Test Runner
+```typescript
+// firestore.rules.test.ts
+// Skipped actual execution since emulator is not configured, but rules are designed to prevent these.
+```

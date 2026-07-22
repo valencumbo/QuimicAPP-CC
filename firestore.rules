@@ -2,19 +2,135 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     match /{document=**} {
       allow read, write: if false; 
     }
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function existing() { return resource.data; }
+    function incoming() { return request.resource.data; }
+    function isOwner(workspaceId) { return isAuthenticated() && request.auth.uid == workspaceId; }
+    function isStringSafe(val, max) { return val is string && val.size() <= max; }
+
+    function isValidUser(data) {
+      // strict check for create
+      return data.keys().hasAll(['email', 'displayName', 'role', 'isActive', 'createdAt', 'updatedAt'])
+        && isStringSafe(data.email, 150)
+        && isStringSafe(data.displayName, 100)
+        && data.role in ["superadmin", "admin", "seller", "stock", "viewer"]
+        && data.isActive is bool;
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && request.auth.uid == userId
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time.toMillis()
+        && incoming().updatedAt == request.time.toMillis();
+      allow update: if isAuthenticated() && request.auth.uid == userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt', 'lastLogin'])
+        && incoming().updatedAt == request.time.toMillis()
+        && incoming().email == existing().email;
     }
 
     match /workspaces/{workspaceId} {
-      allow read, write: if request.auth != null && request.auth.uid == workspaceId;
+      allow read: if isOwner(workspaceId);
+      allow create: if isOwner(workspaceId)
+        && incoming().ownerId == workspaceId
+        && incoming().createdAt == request.time.toMillis();
+      allow update: if isOwner(workspaceId)
+        && incoming().updatedAt == request.time.toMillis()
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if false;
 
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == workspaceId;
+      match /products/{productId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(productId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'name', 'type', 'createdAt'])
+          && isStringSafe(incoming().name, 200)
+          && incoming().type in ['resale', 'raw', 'processed'];
+        allow update: if isOwner(workspaceId) && isValidId(productId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(productId) && existing().workspaceId == workspaceId;
+      }
+
+      match /purchases/{purchaseId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(purchaseId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'productId', 'createdAt']);
+        allow update: if isOwner(workspaceId) && isValidId(purchaseId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(purchaseId) && existing().workspaceId == workspaceId;
+      }
+      
+      match /batches/{batchId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(batchId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'productId', 'lotNumber']);
+        allow update: if isOwner(workspaceId) && isValidId(batchId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(batchId) && existing().workspaceId == workspaceId;
+      }
+
+      match /recipes/{recipeId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(recipeId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'productId']);
+        allow update: if isOwner(workspaceId) && isValidId(recipeId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(recipeId) && existing().workspaceId == workspaceId;
+      }
+
+      match /suppliers/{supplierId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(supplierId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'name'])
+          && isStringSafe(incoming().name, 200);
+        allow update: if isOwner(workspaceId) && isValidId(supplierId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(supplierId) && existing().workspaceId == workspaceId;
+      }
+
+      match /reminders/{reminderId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(reminderId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'title', 'completed'])
+          && isStringSafe(incoming().title, 200);
+        allow update: if isOwner(workspaceId) && isValidId(reminderId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(reminderId) && existing().workspaceId == workspaceId;
+      }
+
+      match /sales/{saleId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(saleId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'totalAmount', 'createdAt']);
+        allow update: if isOwner(workspaceId) && isValidId(saleId)
+          && incoming().workspaceId == existing().workspaceId;
+        allow delete: if isOwner(workspaceId) && isValidId(saleId) && existing().workspaceId == workspaceId;
+      }
+
+      match /auditLogs/{logId} {
+        allow read, list: if isOwner(workspaceId) && existing().workspaceId == workspaceId;
+        allow create: if isOwner(workspaceId) && isValidId(logId)
+          && incoming().workspaceId == workspaceId
+          && incoming().keys().hasAll(['workspaceId', 'userId', 'action', 'timestamp']);
+        allow update, delete: if false; // Immutable
       }
     }
   }
