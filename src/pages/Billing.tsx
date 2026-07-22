@@ -303,7 +303,7 @@ export default function Billing() {
                  <Label className="text-zinc-300">Moneda de la Factura</Label>
                  <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger className="bg-input border-border text-white"><SelectValue/></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent >
                       <SelectItem value="ARS">ARS</SelectItem>
                       <SelectItem value="USD">USD</SelectItem>
                     </SelectContent>
@@ -312,34 +312,34 @@ export default function Billing() {
             </div>
             
             <div className="border border-border rounded-lg overflow-hidden overflow-x-auto shadow-sm">
-                <table className="w-full min-w-[600px] text-sm text-left">
+                <table className="w-full  text-sm text-left">
                   <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
                     <tr>
-                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold">Tipo</th>
-                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold">Item</th>
-                      <th className="px-4 py-3 w-24 text-xs uppercase tracking-wider font-bold text-right">Cantidad</th>
-                      <th className="px-4 py-3 w-28 text-xs uppercase tracking-wider font-bold text-right">Precio U.</th>
-                      <th className="px-4 py-3 text-xs uppercase tracking-wider font-bold text-right">Subtotal</th>
-                      <th className="px-4 py-3 w-10"></th>
+                      <th className="px-2 py-3 text-xs uppercase tracking-wider font-bold">Tipo</th>
+                      <th className="px-2 py-3 text-xs uppercase tracking-wider font-bold">Item</th>
+                      <th className="px-2 py-3 w-24 text-xs uppercase tracking-wider font-bold text-right">Cantidad</th>
+                      <th className="px-2 py-3 w-28 text-xs uppercase tracking-wider font-bold text-right">Precio U.</th>
+                      <th className="px-2 py-3 text-xs uppercase tracking-wider font-bold text-right">Subtotal</th>
+                      <th className="px-2 py-3 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
                     {items.map((it, idx) => (
                       <tr key={idx} className="bg-card hover:bg-muted/20 transition-colors group">
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                            <Select value={it.isRecipe ? 'recipe' : 'product'} onValueChange={v => updateItem(idx, 'isRecipe', v === 'recipe')}>
                               <SelectTrigger className="w-28 border-border bg-input text-white text-xs">
                                 <SelectValue>
                                   {it.isRecipe ? 'Receta' : 'Prod.'}
                                 </SelectValue>
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent >
                                 <SelectItem value="product">Prod.</SelectItem>
                                 <SelectItem value="recipe">Receta</SelectItem>
                               </SelectContent>
                            </Select>
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                            <Select value={it.itemId || undefined} onValueChange={v => updateItem(idx, 'itemId', v)} onOpenChange={(o) => { if(!o) setSearchItem(''); }}>
                               <SelectTrigger className="w-full border-border bg-input text-white text-sm">
                                 <SelectValue placeholder="Seleccionar...">
@@ -350,7 +350,7 @@ export default function Billing() {
                                      : ''}
                                 </SelectValue>
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="min-w-[300px] md:min-w-[400px]">
                                 <SelectSearch value={searchItem} onChange={setSearchItem} />
                                 {it.isRecipe ? 
                                     recipes.filter((r: any) => (products.find(p => p.id === r.productId)?.name || '').toLowerCase().includes(searchItem.toLowerCase())).map((r: any) => <SelectItem key={r.id} value={r.id}>{products.find(p => p.id === r.productId)?.name || 'Receta'}</SelectItem>) :
@@ -359,16 +359,16 @@ export default function Billing() {
                               </SelectContent>
                            </Select>
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                            <Input type="number" min="0.1" step="any" value={it.quantity === '' ? '' : it.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))} className="w-20 bg-input border-border font-mono text-right text-sm" />
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                            <Input type="number" min="0" step="any" value={it.customPrice === '' ? '' : it.customPrice} onChange={e => updateItem(idx, 'customPrice', e.target.value === '' ? '' : Number(e.target.value))} className="w-24 bg-input border-border font-mono text-right text-sm" />
                         </td>
-                        <td className="px-4 py-2 font-medium font-mono text-primary text-right text-sm">
+                        <td className="px-2 py-2 font-medium font-mono text-primary text-right text-sm">
                            {it.quantity !== '' && it.customPrice !== '' ? formatMoney(Number(it.quantity) * Number(it.customPrice), currency) : ''}
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                           <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(idx)} className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-red-400 hover:bg-red-500/10">
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -435,7 +435,7 @@ export default function Billing() {
                      </div>
                    </div>
                  </CardHeader>
-                 <CardContent className="px-4 py-3">
+                 <CardContent className="px-2 py-3">
                    <div className="flex items-end justify-between">
                      <div className="text-xs text-zinc-500 font-medium bg-muted/50 px-2 py-1 rounded">
                        {s.items.length} ítem{s.items.length !== 1 && 's'}
@@ -483,14 +483,14 @@ export default function Billing() {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 border border-border rounded-lg overflow-x-auto w-full shadow-lg">
-            <table className="w-full text-sm min-w-[600px]">
+            <table className="w-full text-sm ">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-4 py-3 text-left text-muted-foreground text-xs uppercase tracking-wider font-bold">Ítem</th>
-                  <th className="px-4 py-3 text-center text-muted-foreground text-xs uppercase tracking-wider font-bold">Tipo</th>
-                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Cant.</th>
-                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Precio U.</th>
-                  <th className="px-4 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Subtotal</th>
+                  <th className="px-2 py-3 text-left text-muted-foreground text-xs uppercase tracking-wider font-bold">Ítem</th>
+                  <th className="px-2 py-3 text-center text-muted-foreground text-xs uppercase tracking-wider font-bold">Tipo</th>
+                  <th className="px-2 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Cant.</th>
+                  <th className="px-2 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Precio U.</th>
+                  <th className="px-2 py-3 text-right text-muted-foreground text-xs uppercase tracking-wider font-bold">Subtotal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-zinc-300">
@@ -501,11 +501,11 @@ export default function Billing() {
                   
                   return (
                     <tr key={i} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium text-white">{itemName}</td>
-                      <td className="px-4 py-3 text-center text-xs text-zinc-500 uppercase font-bold">{it.isRecipe ? 'Receta' : 'Producto'}</td>
-                      <td className="px-4 py-3 text-right font-mono text-sm">{it.quantity}</td>
-                      <td className="px-4 py-3 text-right font-mono text-sm">{formatMoney(it.customPrice || 0, viewSaleDetails.currency)}</td>
-                      <td className="px-4 py-3 text-right font-mono font-medium text-primary text-sm">{formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)}</td>
+                      <td className="px-2 py-3 font-medium text-white">{itemName}</td>
+                      <td className="px-2 py-3 text-center text-xs text-zinc-500 uppercase font-bold">{it.isRecipe ? 'Receta' : 'Producto'}</td>
+                      <td className="px-2 py-3 text-right font-mono text-sm">{it.quantity}</td>
+                      <td className="px-2 py-3 text-right font-mono text-sm">{formatMoney(it.customPrice || 0, viewSaleDetails.currency)}</td>
+                      <td className="px-2 py-3 text-right font-mono font-medium text-primary text-sm">{formatMoney((it.quantity || 0) * (it.customPrice || 0), viewSaleDetails.currency)}</td>
                     </tr>
                   );
                 })}

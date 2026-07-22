@@ -273,7 +273,7 @@ export default function Lotes() {
                       {products.find(p => p.id === formData.productId)?.name || 'Seleccionar producto...'}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="min-w-[300px] md:min-w-[400px]">
                     <SelectSearch value={searchProduct} onChange={setSearchProduct} placeholder="Buscar producto..." />
                     {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ''}</SelectItem>
@@ -330,7 +330,7 @@ export default function Lotes() {
                       {formData.supplierId === 'none' ? 'Sin proveedor especificado' : suppliers.find(s => s.id === formData.supplierId)?.name || 'Sin proveedor especificado'}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="min-w-[300px] md:min-w-[400px]">
                     <SelectSearch value={searchSupplier} onChange={setSearchSupplier} placeholder="Buscar proveedor..." />
                     <SelectItem value="none">Sin proveedor especificado</SelectItem>
                     {suppliers.filter(s => s.name.toLowerCase().includes(searchSupplier.toLowerCase())).map(s => (

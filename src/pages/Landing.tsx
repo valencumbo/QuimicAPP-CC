@@ -76,21 +76,39 @@ export default function Landing() {
             
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
               {/* Feature 1 */}
-              <ScrollReveal delay={0.1} className="bg-background rounded-3xl p-8 md:p-12 border border-border flex flex-col items-center text-center group transition-all hover:border-zinc-700 shadow-md">
+              <ScrollReveal delay={0.1} className="bg-background rounded-3xl overflow-hidden border border-border flex flex-col group transition-all hover:border-zinc-700 shadow-md">
+                 <div className="h-48 bg-muted/30 relative border-b border-border">
+                    {/* Sugerencia: Captura de la creación de una Fórmula */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <span className="text-xs text-zinc-500 font-medium">[Captura: Creador de Fórmulas]</span>
+                    </div>
+                 </div>
+                 <div className="p-8 md:p-10 flex flex-col items-center text-center flex-1">
+              
                  <div className="w-16 h-16 bg-muted/50 rounded-2xl border border-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                    <TestTube className="w-8 h-8 text-primary" />
                  </div>
                  <h3 className="text-2xl font-bold mb-4 text-white">Ingeniería de Fórmulas</h3>
                  <p className="text-zinc-400 leading-relaxed text-balance">Combina materias primas con extrema precisión. Ingresa el rendimiento, densidad, mermas y gastos fijos para obtener el costo exacto por lote y por unidad.</p>
+                 </div>
               </ScrollReveal>
 
               {/* Feature 2 */}
-              <ScrollReveal delay={0.2} className="bg-background rounded-3xl p-8 md:p-12 border border-border flex flex-col items-center text-center group transition-all hover:border-zinc-700 shadow-md">
+              <ScrollReveal delay={0.2} className="bg-background rounded-3xl overflow-hidden border border-border flex flex-col group transition-all hover:border-zinc-700 shadow-md">
+                 <div className="h-48 bg-muted/30 relative border-b border-border">
+                    {/* Sugerencia: Captura de la sección de Lotes o Compras */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       <span className="text-xs text-zinc-500 font-medium">[Captura: Inventario / Lotes]</span>
+                    </div>
+                 </div>
+                 <div className="p-8 md:p-10 flex flex-col items-center text-center flex-1">
+              
                  <div className="w-16 h-16 bg-muted/50 rounded-2xl border border-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                    <Archive className="w-8 h-8 text-emerald-500" />
                  </div>
                  <h3 className="text-2xl font-bold mb-4 text-white">Trazabilidad de Lotes e Inventario</h3>
                  <p className="text-zinc-400 leading-relaxed text-balance">Maneja números de lote, fechas de vencimiento y códigos QR. Promedio de costos automático al ingresar compras para nunca perder rentabilidad.</p>
+                 </div>
               </ScrollReveal>
               
               {/* Feature 3 */}
@@ -147,6 +165,19 @@ export default function Landing() {
                >
                  Solicitar alta de cuenta
                </Button>
+            </ScrollReveal>
+            <ScrollReveal delay={0.4} yOffset={60} className="w-full max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-zinc-800 relative group mt-16">
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
+              {/* Sugerencia: Captura del Dashboard principal o de la sección Fórmulas */}
+              <div className="aspect-[16/9] bg-muted/30 flex items-center justify-center relative">
+                 <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2070" alt="Dashboard Preview" className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                    <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-xl border border-white/10 text-white font-medium text-sm flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                       [Reemplazar con captura del Dashboard]
+                    </div>
+                 </div>
+              </div>
             </ScrollReveal>
           </div>
         </section>

@@ -14,14 +14,14 @@ export function SelectSearch({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center px-3 py-2 border-b border-border sticky top-0 bg-popover z-50", className)}>
+    <div className={cn("flex items-center px-3 py-2 border-b border-border sticky top-0 bg-[#1A1A1A] z-50", className)}>
       <Search className="w-4 h-4 mr-2 text-muted-foreground shrink-0" />
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => e.stopPropagation()}
         placeholder={placeholder}
-        className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+        className="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
       />
     </div>
   )

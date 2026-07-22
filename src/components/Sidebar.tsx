@@ -264,7 +264,7 @@ export default function Sidebar() {
     {
       title: 'Administración',
       items: [
-        { name: 'Facturación', path: '/billing', icon: Receipt },
+        { name: 'Facturación / Ventas', path: '/billing', icon: Receipt },
         { name: 'Proveedores', path: '/suppliers', icon: Factory },
       ]
     },

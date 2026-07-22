@@ -259,7 +259,7 @@ export default function Purchases() {
                          {products.find(p => p.id === formData.productId) ? `${products.find(p => p.id === formData.productId)?.name} (${products.find(p => p.id === formData.productId)?.unit})` : 'Selecciona un producto...'}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[300px] md:min-w-[400px]">
                       <SelectSearch value={searchProduct} onChange={setSearchProduct} placeholder="Buscar producto..." />
                       {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} ({p.unit})</SelectItem>

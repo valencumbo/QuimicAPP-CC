@@ -74,14 +74,14 @@ export default function Dashboard() {
       const sDate = s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()) : new Date(s.createdAt);
       return isSameDay(sDate, date);
     });
-    const totalDay = daySales.reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+    const totalDay = daySales.reduce((acc: number, s: any) => acc + (s.totalAmount || s.total || 0), 0);
     return {
       date: format(date, 'dd/MM'),
       ventas: totalDay
     };
   });
 
-  const currentMonthSales = (sales || []).reduce((acc: number, s: any) => acc + (s.total || 0), 0);
+  const currentMonthSales = (sales || []).reduce((acc: number, s: any) => acc + (s.totalAmount || s.total || 0), 0);
   
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

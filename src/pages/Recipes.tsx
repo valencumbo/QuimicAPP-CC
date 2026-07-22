@@ -294,7 +294,7 @@ export default function Recipes() {
                          {materials.find(m => m.id === currentMaterial)?.name || 'Seleccionar insumo'}
                        </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[300px] md:min-w-[400px]">
                       <SelectSearch value={searchMaterial} onChange={setSearchMaterial} placeholder="Buscar insumo..." />
                       {materials.filter(p => p.name.toLowerCase().includes(searchMaterial.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(searchMaterial.toLowerCase()))).map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} ({p.unit})</SelectItem>

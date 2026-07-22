@@ -510,7 +510,7 @@ export default function Products() {
                     <SelectTrigger className="bg-input">
                       <SelectValue placeholder="Seleccionar unidad..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[300px] md:min-w-[400px]">
                       <SelectSearch value={searchUnit} onChange={setSearchUnit} />
                       {allUnits.filter(u => u.toLowerCase().includes(searchUnit.toLowerCase())).map(u => (
                         <SelectItem key={u} value={u}>{u}</SelectItem>
@@ -528,7 +528,7 @@ export default function Products() {
                     <SelectTrigger className="bg-input">
                       <SelectValue placeholder="Seleccionar proveedor..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[300px] md:min-w-[400px]">
                       <SelectSearch value={searchSupplier} onChange={setSearchSupplier} />
                       <SelectItem value="Sin proveedor especificado">Sin proveedor especificado</SelectItem>
                       {suppliers.filter(s => s.name.toLowerCase().includes(searchSupplier.toLowerCase())).map(s => (
@@ -546,7 +546,7 @@ export default function Products() {
                     <SelectTrigger className="bg-input">
                       <SelectValue placeholder="Seleccionar categoría..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="min-w-[300px] md:min-w-[400px]">
                       <SelectSearch value={searchCategory} onChange={setSearchCategory} />
                       <SelectItem value="Sin categoría">Sin categoría</SelectItem>
                       {allCategories.filter(c => c.toLowerCase().includes(searchCategory.toLowerCase())).map(c => (
