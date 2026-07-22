@@ -128,7 +128,7 @@ export default function Landing() {
               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10"></div>
               {/* Sugerencia: Captura del Dashboard principal o de la sección Fórmulas */}
               <div className="bg-muted/30 flex items-center justify-center relative p-2 md:p-4">
-                 <img src="/captura-dashboard-1.png" alt="Dashboard Principal" className="w-full h-auto rounded-xl shadow-sm opacity-90 group-hover:opacity-100 transition-opacity duration-700 cursor-pointer" onClick={() => setSelectedImage('/captura-dashboard-1.png')} />
+                 <img src="/captura-dashboard.png" alt="Dashboard Principal" className="w-full h-auto rounded-xl shadow-sm opacity-90 group-hover:opacity-100 transition-opacity duration-700 cursor-pointer" onClick={() => setSelectedImage('/captura-dashboard-1.png')} />
               </div>
             </ScrollReveal>
           </div>
@@ -194,9 +194,9 @@ export default function Landing() {
               <ScrollReveal delay={0.2} yOffset={40} className="flex flex-col sm:flex-row items-center justify-center gap-4">
                  <a href="https://wa.me/5491160159405" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                    <Button size="lg" className="w-full h-14 px-8 text-base font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-900/20">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="mr-3">
-                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                     </svg>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="mr-3">
+  <path d="M12.031 0C5.383 0 0 5.383 0 12.031c0 2.128.555 4.204 1.61 6.035L.17 23.518l5.602-1.468A11.97 11.97 0 0012.031 24c6.648 0 12.03-5.383 12.03-12.031S18.679 0 12.031 0zm0 21.996c-1.802 0-3.567-.485-5.112-1.402l-.367-.217-3.795.995 1.013-3.7-.238-.378a9.969 9.969 0 01-1.528-5.328c0-5.502 4.478-9.98 9.98-9.98 5.503 0 9.98 4.478 9.98 9.98 0 5.503-4.477 9.98-9.98 9.98zm5.485-7.466c-.302-.151-1.782-.88-2.059-.982-.277-.1-.478-.151-.679.151-.201.302-.78 .982-.956 1.182-.176.201-.352.227-.654.076-.302-.151-1.272-.469-2.423-1.498-.896-.801-1.503-1.789-1.679-2.091-.176-.302-.019-.465.132-.616.136-.136.302-.352.453-.528.151-.176.201-.302.302-.503.1-.201.05-.377-.025-.528-.076-.151-.679-1.637-.93-2.241-.245-.588-.495-.508-.679-.517-.176-.009-.377-.009-.579-.009s-.528.075-.805.377c-.277.302-1.057 1.031-1.057 2.515 0 1.484 1.082 2.918 1.232 3.119.151.201 2.126 3.245 5.152 4.553.719.31 1.282.496 1.721.634.722.23 1.381.198 1.9.12.58-.087 1.782-.729 2.034-1.434.252-.705.252-1.308.176-1.434-.075-.126-.276-.201-.578-.352z"/>
+</svg>
                      Contactar por WhatsApp
                    </Button>
                  </a>
